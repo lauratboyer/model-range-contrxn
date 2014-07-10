@@ -1,0 +1,227 @@
+\documentclass{article}
+\usepackage{fullpage}
+\usepackage{graphicx}
+\usepackage{amsmath}
+
+\newcommand{\capnow}{}
+\newcommand{\addcenterfig}[3][Caption to be completed]{
+  \begin{figure}[!h]
+    \begin{center}
+      \includegraphics[width=\textwidth]{#3}
+     \caption{#1 \label{#2}}
+    \end{center}
+  \end{figure}
+}
+
+\begin{document}
+
+Must read Freckleton et al 2005 as their model is similar and they get
+the right shape for the AOR (Also check out Freckleton 2006). Holt et al 2002 and 1997 developed
+different models for AOR, to check too.
+
+Time-lags: depending on colonization/extinction rates there could be a
+lag between the initial decline in abundance and when it is felt --
+see Conrad et al 2001 for an example with a butterfly. I could model
+this. \\
+
+Holt, A.R., Warren, P.H. \& Gaston, K.J. (2002) The importance of
+biotic interactions in abundance-occupancy relationships. Journal of
+Animal Ecology, 71, 846–854.
+
+See also rescue effect to low density sites (Gonzalez 1998) in years
+of low occupancy.
+\section{Introduction}
+Matthysen (2005) notes that even though there has been many
+theoretical models on DD dispersal, empirical studies remain few. See
+introduction for more, and citing papers.
+
+Using proportion of local cell density is simplification but quite
+realistic for schooling fish as they are unlikely to move on their own
+to different destinations.
+
+\subsection{Implementation of density-dependent dispersal in the
+  literature}
+Travis et al (1999) had an evolutionary individual-based
+model. Lattice with periodic boundaries. In their model the only
+instance where DDD did not evolve was when there was no cost to
+dispersal. No equation but cost of dispersal implemented as
+probability of failing to reach destination (after which the
+individual presumably dies/disappears from lattice).
+
+Some models include a cost to dispersal -- example failure to reach
+destination. Dispersal is a linear function of natal population
+density.
+
+\section{Relevant literature}
+Trakhtenbrot, A., Nathan, R., Perry, G. \& Richardson, D.M. (2005) The
+importance of long-distance dispersal in biodiversity
+conservation. Diversity and Distributions, 11, 173–181. \\
+
+\section{Overview of model}
+
+This is a spatially explicit model with cells set-up in a lattice
+grid. Populations dynamics in each cell follow a logistic model, that
+is, for each cell two main parameters are defined, the carrying
+capacity $K$ and the \emph{per capita} growth rate $r$. Population at
+the next time step is then a function of population at the previous
+timestep and the expected population growth given how close abundance
+is to the carrying capacity:
+\begin{equation}
+N_{t+1} = N_t + N_t \times r \times (1-\frac{N_t}{K})
+\end{equation}
+
+It is useful to break down the logistic part as it performs two roles:
+adding individuals (growth, reproduction, $r_G$ thereafter) and removing individuals
+(natural mortality, $r_M$ thereafter).
+\begin{equation}
+\displaystyle N_{t+1}=N_t + \underbrace{N_t \times
+  r_M}_{\textstyle{growth}} -
+\underbrace{N_t \times r_M \times-\displaystyle\frac{N_t}{K}}_{\textstyle{mortality}}
+\end{equation}
+
+In the geographic range of a species we would expect growth and
+mortality rates to change, and not necessarily in synchrony. As a
+simple example, for mobile animals reproduction (growth) might only
+occur in certain parts of the range while mortality could occur
+throughout the range.
+Read to cite maybe: REVIEW: Identifying links between vital rates and
+environment: a toolbox for the applied ecologist.
+
+Dispersal distance, see: The evolution of dispersal distance in
+spatially‐structured populations, Murrell et al 2002.
+Dispersal between cells can be implemented in two ways. When it is
+emigration-driven, individuals 'decide' to emigrate from cells based
+on parameters pertaining to the cell itself (e.g. set emigration
+rate at everytime step, or the cell is too crowded) and immigration to
+cells is thus calculated passively from emigration in neighbour
+cells. If it is immigration driven then individuals move to a target
+cells based on features of that cell -- e.g. the environment is
+optimal. In that case emigration becomes a function of how
+'attractive' neighbour cells are, compared to the currently occupied
+cell (see also gravity models).\\
+
+For now in the model dispersal is implemented as emigration-driven. At
+each time-step a proportion of the current cell abundance is designed
+to emigrate \emph{after reproducing}. This proportion can either be
+constant or it can be a function of how close current cell abundance
+is to carrying capacity. This is done to produce greater emigration
+rate as the cell becomes 'crowded'. Emigration is set at a constant
+rate ($E_{base}$) when N is smaller than half of the carrying capacity, and
+increases linearly from that level to a maximum emigration rate
+($E_{max}$), which is reached at $K$.\\
+
+See studies cited in intro by Matthysen to see how DD dispersal was
+modelled.
+
+Also: it could be argued that fish can use chemical signals in the
+water as cues to inform where they should disperse -- e.g. see paper
+by Zimmer and Butman 2000 Chemical signaling processes in the marine
+environments. Mostly invertebrates studies but still might be
+relevant. Also paper by Southwood and al 2008 on using environmental
+cues to reduce bycatch in longline fisheries -- reviews cues used by
+large pelagics.
+
+\section{Model behaviour given parameter set}
+\subsection{No dispersal}
+When there is no dispersal between cells each cell reaches carrying
+capacity following a smooth logistic curve (Figure \ref{nodisp}). This
+also happens if $K$ varies between cells (Figure \ref{nodisp-core}).
+
+\addcenterfig{nodisp}{Theo-mod_range-contrxn_emigbase-0_emigmax-0_habtype-even.pdf}
+\addcenterfig{nodisp-core}{Theo-mod_range-contrxn_emigbase-0_emigmax-0_habtype-core.pdf}
+
+Could change the K proportion at which dispersal starts occuring.
+Could have an option that if it is a 'vital' cell, dispersal happens
+only after threshold, if it is a non-vital cell, dispersal happens all
+the time.
+\subsection{Constant dispersal}
+
+
+\subsection{Natal cell driven density-dependent dispersal}
+
+\renewcommand{\capnow}{Under low, constant and even dispersal rates,
+  core cells reach an equilibrium lower than their defined
+  K, while edge cells reach an equilibrium higher than their defined K.}
+\addcenterfig[\capnow]{even-low-disp}{Theo-mod_range-contrxn_emigbase-01_emigmax-01_habtype-core}
+
+\subsection{Adding fishing}
+When there is fishing and no dispersal.
+
+When there is dispersal as fishing increases abundance in cells
+becomes move even.
+
+If there is fishing only in the core, abundance in core cells is
+higher if there is dispersal.
+If there is little dispersal the cell the furthest away from migrants
+goes extinct first.
+
+Under high core fishing mortality core cells will only subsist if
+there is dispersal.
+
+Also if there is even a low base emigration rate for all cells,
+abundance is declines smoothly around the core ... otherwise sharp
+square. Compare map.abund() with emig.base = 0 vs emig.base=0.1
+\subsection{Fishing as first step}
+\subsection{Adding core r}
+When adding core r (i.e. r in edge cells = 0) edge cells reach higher
+K because the logistic term acts makes it converge to K (when N is
+greater than K the term becomes negative)
+
+\subsection{shape of AOR vs assumption}
+if no emigration before certain threshold is reach then flat then
+increases, if emigration at first and then reach plateau, then other
+type. right now modelling first kind... how can I get the third type?
+
+\subsection{Discussion on ways to implement dispersal}
+If dispersal is a function of local carrying capacity then there
+should not be that much biomass distribution. If it is a function of
+global/landscape carrying capacity, then there should be more
+movement... but should also account for K gradient between cells
+(i.e. individuals need to be rewarded for moving to cells with lower
+N/K)... e.g. could be that at each time step proportion of migrants is
+calculated, but instead of dispersing evenly between neighbours they
+disperse preferentially to neighbours with lower N/K.
+
+NEXT*** Create relationship to implement neighbour preference. Could be
+standardized proportion of 1-N/K... to make it more/less even first
+divide by self, gradient between dividing by self to dividing by 1 (if
+value is 1 full neighbour preference, if value is N/K no neighbour
+preference).
+
+This would be realistic for animals that follow a gradient of good
+conditions, vs animals that follow a migration route no matter what.
+
+\section{Developing hypotheses to test from data}
+E.g. if range contraction due to high local mortality in edges,
+vs. DDHS, then spatial distribution is the same BUT rates of
+emigration by cell should be different.
+
+(Would be good to email Holdsworth about this)
+
+\section*{Literature on density-dependent dispersal}
+Matthysen, E. (2005). Density-dependent dispersal in birds and
+mammals. Ecography, 28(3),
+403–416. doi:10.1111/j.0906-7590.2005.04073.x \\
+
+McCarthy (1999) Effect of competition on native dispersal distance.\\
+
+Travis, J. M. J., Murrell, D. J., \& Dytham, C. (1999). The evolution
+of density–dependent dispersal. Proceedings of the Royal Society
+B-Biological Sciences, 266(1431), 1837–1842. \\
+
+Travis and Lambin (2000). Dispersal functions and spatial models:
+expanding our dispersal toolbox. \\
+
+Dens dependent examples: birds and mammals, see Matthysen, reptile see
+Lena (1998) (cited in Matthysen), insects see citations in
+Matthysen.\\
+
+Bowler, D. E., \& Benton, T. G. (2005). Causes and consequences of
+animal dispersal strategies: relating individual behaviour to spatial
+dynamics. Biological Reviews. \\
+
+Kokko, H., \& López-Sepulcre, A. (2006). From individual dispersal to
+species ranges: perspectives for a changing world. Science, 313(5788),
+789–791. doi:10.1126/science.1128566\\
+
+\end{document}
