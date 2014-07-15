@@ -4,7 +4,14 @@
 ## -------------------------------------------------------
 ## Author: Laura Tremblay-Boyer (l.boyer@fisheries.ubc.ca)
 ## Written on: June 16, 2014
-## Time-stamp: <2014-07-14 10:56:32 Laura>
+## Time-stamp: <2014-07-15 12:27:59 Laura>
+########################################################
+# Define general labels and such
+
+emig.lab <- c("No dispersal", "Even emigration", "Preferential emigration")
+names(emig.lab) <- c("base","emig","wpref")
+ftype.lab <- c("Even throughout the range","Higher in core", "Higher in edges")
+names(ftype.lab) <- c("even","core","edge")
 
 ########################################################
 # format information on run parameters to include unobstrusively
@@ -203,6 +210,9 @@ plot.cell.layout <- function(emat=envpop$mat) {
     mtext("Cell layout and K", adj=0)
     abline(h=(1:nrow(emat))-0.5)
     abline(v=(1:nrow(emat))-0.5)
+
+    dev.copy2pdf(file="tm-range-dyn_cell-layout-map.pdf")
+
 }
 
 
@@ -224,9 +234,60 @@ plot.tm.aor <- function(popmat=envpop$mat, pres.thresh=0) {
 plot.fish.biom <- function(pmat=envpop$mat) {
 
     plot(c(F.array[,,ts.max]), c(pmat[,,ts.max]/K), ylim=c(0,1))
-
-
-
-
-
 }
+
+###################################################
+###################################################
+## Plot scenario time-series (3) (i.e. top panel of emat)
+plot.scen.ts <- function(scen.list, F.type="even", show.nk=FALSE) {
+
+    # define scenarios to show in plot:
+    scen.sub <- scen.list[[F.type]]
+
+    Know <- attr(scen.list, "K")
+    rgval <- attr(scen.list, "rgval")
+    hab.struct <- ifelse(rgval[1]!=rgval[2], "Core-edge", "Even")
+
+    plines <- function(wtype, xl) {
+
+        emat <- scen.sub[[wtype]]
+        ymax <- ifelse(show.nk, 1.25, max(Know))
+        plot(1:10, type="n", xlim=xl, ylim=c(0,ymax), las=1,
+             yaxt=ifelse(wtype=="base", "t", "n"))
+        abline(h=K, col=c(col.mat.transp), lwd=0.5)
+
+        cellv <- 1:ncell
+        mi <- arrayInd(cellv, .dim=c(grid.width, grid.width))
+        dmm <- sapply(cellv, function(rr) lines(emat[mi[rr,1],
+                                                     mi[rr,2],]/ifelse(show.nk,K[rr],1),
+                                                lwd=2, col=col.mat.transp[rr]))
+        mtext(emig.lab[wtype], adj=0)
+    }
+
+    check.dev.size(9.3, 4.5)
+    par(mfrow=c(1,3), mai=rep(0.1,4), omi=c(0.65,0.75,0.85,0.1), family="HersheySans")
+
+    plines("base", c(0, ts.max))
+    plines("emig", c(0, ts.max))
+    plines("wpref", c(0, ts.max))
+
+    mtext("Population size (# of individuals)", side=2, outer=TRUE, line=4)
+    mtext("Timesteps", side=1, outer=TRUE, line=3)
+
+
+    # General plot label
+    px <- grconvertX(0, from="nic")
+    py <- grconvertY(0.95, from="ndc")
+    lh <- strheight("I", vfont=c("sans serif","plain"))
+    text(px, py-3*lh, sprintf("Fishing mortality: %s", ftype.lab[F.type]),
+         pos=4, cex=1.75, xpd=NA)
+    text(px, py, sprintf("Habitat structure: %s", hab.struct),
+         pos=4, cex=1.75, xpd=NA)
+
+    fname <- sprintf("tm-range-contrxn_ts-3-scen_HS-%s_FM-%s.pdf",
+                     hab.struct, F.type)
+    dev.copy2pdf(file=fname)
+}
+
+
+
