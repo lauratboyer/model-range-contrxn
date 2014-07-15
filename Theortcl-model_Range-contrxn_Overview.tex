@@ -134,15 +134,48 @@ Could change the K proportion at which dispersal starts occuring.
 Could have an option that if it is a 'vital' cell, dispersal happens
 only after threshold, if it is a non-vital cell, dispersal happens all
 the time.
-\subsection{Constant dispersal}
+\subsection{Constant, even dispersal}
 
-
-\subsection{Natal cell driven density-dependent dispersal}
+Dispersal can be modelled as a constant rate: at each time-step a
+proportion of $d$ residing individuals emigrate and they spread evenly
+between neighbour cells.
 
 \renewcommand{\capnow}{Under low, constant and even dispersal rates,
   core cells reach an equilibrium lower than their defined
   K, while edge cells reach an equilibrium higher than their defined K.}
 \addcenterfig[\capnow]{even-low-disp}{Theo-mod_range-contrxn_emigbase-01_emigmax-01_habtype-core}
+
+\subsection{Density or habitat-driven dispersal}
+
+\subsubsection{Emigration from natal cell}
+Individuals could decide to emigrate from their current cell based on local
+conditions (e.g. crowding decreasing ressource availability).
+
+This can be modelled as a linear relationship between a base
+emigration rate, a maximum emigration rate, and boundary N/K
+values. (When you do this AND default emigration is zero AND the core
+is fished AND there is no reproduction in the edges you get type 3 AOR
+shape).
+
+The 'decision' to emigrate is solely based on N/K... there is no
+preference for habitat as defined in $r$.
+
+\subsubsection{Destination cells of migrating individuals}
+Migrating individuals can spread evenly to all neighbours -- or they
+can preferentially migrate to select cells based on cell
+characteristic.
+
+They could: (1) Move preferentially to cells with lower N/K; (2) move
+preferentially to cells with higher realized growth (combining habitat
+quality via r and N/K). r.growth represents somatic or reproductive
+growth; (3) have home cell compete with neighbour cells; (3b) same but
+including a cost to dispersal (i.e. for it to be worth while to disperse neighbour
+cell must have a better rN/K value -- home advantage -- but then does
+this mean that at equilibrium there is no more movement between cells?)
+
+
+
+
 
 \subsection{Adding fishing}
 When there is fishing and no dispersal.
@@ -223,5 +256,9 @@ dynamics. Biological Reviews. \\
 Kokko, H., \& López-Sepulcre, A. (2006). From individual dispersal to
 species ranges: perspectives for a changing world. Science, 313(5788),
 789–791. doi:10.1126/science.1128566\\
+
+\section{Appendix A: Options available in model}
+\subsection{Environment}
+\subsection{Dispersal}
 
 \end{document}

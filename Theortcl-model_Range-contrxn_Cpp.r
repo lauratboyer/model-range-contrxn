@@ -43,10 +43,10 @@ popmatnow[cc*nc+rr] = Ntnowrep;
 return popmatnow; }')
 
 
-cell.dyn <- function(pref.disp=0, emig.before=TRUE) { # Nt as a function of N_t-1
+cell.dyn <- function(pref.disp=0, add.r=FALSE, use.home=FALSE, emig.before=TRUE) { # Nt as a function of N_t-1
 
     # Reset population matrix
-    envpop$mat[,,2:ts.max] <- NA
+    envpop$mat[,,2:ts.max] <<- NA
 
     upd.ts <- function(ts) {
 
@@ -59,6 +59,13 @@ cell.dyn <- function(pref.disp=0, emig.before=TRUE) { # Nt as a function of N_t-
         # then calculate proportion of each cell that emigrates given
         # current, post-fishing N
         prop.emig <- calc.emig.straight(matnow)
+
+        if(use.home){
+            pi <- ibc.nkratio.wnatal(matnow, pref.disp=pref.disp, add.r=add.r)
+            prop.emig <- apply(pi, 1, sum) # emigration sum of relative proportions that go to neighbours
+
+        }
+
         # store it
         envpop$emig.mat[,,ts] <- prop.emig
 
@@ -66,21 +73,27 @@ cell.dyn <- function(pref.disp=0, emig.before=TRUE) { # Nt as a function of N_t-
         # for each cell, N_t-1 * prop.emig
         #emig.by.cell <- c(envpop$mat[,,ts-1]*prop.emig)
         emig.by.cell <- c(matnow*prop.emig)
+
+
         # assign to each neighbour by multiplying on neighbour mat
         # and spreading evenly over neighbours by dividing by # neighbours
         # senders in rows, receivers in columns
-        prop.immig <- ibc.nkratio(matnow, pref.disp=pref.disp)
+        prop.immig <- ibc.nkratio(matnow, pref.disp=pref.disp, add.r=add.r)
+        envpop$immig.rate[,,ts] <- prop.immig
         immig.by.cell <- apply(emig.by.cell*prop.immig, 2, sum)
         envpop$immig.store[ts,] <- immig.by.cell
         envpop$emig.store[ts,] <- emig.by.cell
 
-        if(emig.before){
+        if(emig.before) {
         matupd <- updcellcpp_eb4r(matnow, r.growth, r.mrt, K,
                              prop.emig, immig.by.cell, c(F.array[,,ts]))
-    }else{
+        }else{
         matupd <- updcellcpp(matnow, r.growth, r.mrt, K,
-                             prop.emig, immig.by.cell, c(F.array[,,ts]))}
-        envpop$mat[,,ts] <- floor(matupd)
+                             prop.emig, immig.by.cell, c(F.array[,,ts]))
+    }
+
+        # update value stored in population array
+        envpop$mat[,,ts] <- matupd
 
 
     }

@@ -4,27 +4,32 @@
 ## -------------------------------------------------------
 ## Author: Laura Tremblay-Boyer (l.boyer@fisheries.ubc.ca)
 ## Written on: June  3, 2014
-## Time-stamp: <2014-06-19 14:44:56 Laura>
+## Time-stamp: <2014-07-14 13:35:12 Laura>
 require(colorspace)
 require(Rcpp)
 source("Theortcl-model_Range-contrxn_Cpp.r")
 source("Theortcl-model_Range-contrxn_Figures-base.r")
-## Model parameters
-grid.width <- 5
-ncell <- grid.width^2 ## Number of cells
 
-## Population parameters
-r.growth <- rep(0.05, ncell) # growth rate
-r.mrt <- rep(0.05, ncell) # mortality rate
+tm.spatial.dyn <- function(emig.base=0.1, emig.max=emig.base,
+                           r.growth.core=0.05, r.growth.edge=r.growth.core,
+                           K.core=10000, K.edge=K.core,
+                           fish.fact=0, fish.fact.edge=fish.fact,
+                           pref.disp=0, add.r.pref=FALSE,
+                           grid.width = 5) {
 
-#r.growth[1:5] <- 0.025
-#r.mrt[1:5] <- 0.025
-Ni <- 100 # starting population initial
-set.seed(99)
+    ## Model parameters
+    ncell <- grid.width^2 ## Number of cells
 
-# if core habitat distribution, calculate
-# width of square in the middle
-# aiming between 30-40% of cells within core
+    ## Population parameters
+    r.growth <<- rep(r.growth.core, ncell) # growth rate
+    r.mrt <<- r.growth # mortality rate
+
+    Ni <- 100 # starting population initial
+    set.seed(99)
+
+    # if core habitat distribution, calculate
+    # width of square in the middle
+    # aiming between 30-40% of cells within core
 calc.core.size <- function(n=ncell) {
 
     gw <- sqrt(n)
@@ -44,57 +49,56 @@ calc.core.size <- function(n=ncell) {
     core.ind <- which(core.mat==1)
     edge.ind <- which(core.mat==0)
 
+    # calculate distance from center to set colours accordingly
+    center.val <- median(1:grid.width)
+    core.pos <- arrayInd(core.ind, .dim=c(grid.width, grid.width))
+    edge.pos <- arrayInd(edge.ind, .dim=c(grid.width, grid.width))
+
+    core.ind <- core.ind[order(-apply(abs(core.pos - center.val), 1, mean))]
+    edge.ind <- edge.ind[order(-apply(abs(edge.pos - center.val), 1, mean))]
+
     return(list(core.mat=core.mat,core.cells=core.ind,edge.cells=edge.ind))
 }
 
-core.layout <- calc.core.size(ncell)
+    core.layout <- calc.core.size(ncell)
 
-habtype <- "core" # should be 'core','even', 'random'
-if(habtype=="random") K <- rpois(ncell, 10000)
-if(habtype=="core") {
-    K <- rep(5000, ncell)
-    K[core.layout$core.cells] <- 10000
-    r.growth[core.layout$edge.cells] <- 0
+    ### Set up habitat
+    habtype <- "core" # should be 'core','even', 'random'
+    if(habtype=="random") K <- rpois(ncell, 10000)
+    if(habtype=="core") {
+    K <<- rep(K.core, ncell)
+    #[core.layout$edge.cells] <- K.edge
+    r.growth[core.layout$edge.cells] <<- r.growth.edge
+    #r.mrt[core.layout$edge.cells] <- r.growth[core.layout$edge.cells]
 }
+
 if(habtype=="even") K <- rep(10000, ncell)
-count <- function(x) length(unique(x))
 K.order <- numeric(); K.order[order(K)] <- 1:ncell
-colv <- c("dodgerblue3", "turquoise1", "tomato")
-names(colv) <- sort(unique(K))
-col.mat <- colv[as.character(K)]
-col.mat <- matrix(col.mat, nrow=grid.width)
-if(ncell==25) {
-    col.mat[c(7,9,17,19)] <- "turquoise3"
-    col.mat[c(1,5,21,25)] <- "dodgerblue1"
-    col.mat[c(3,11,15,23)] <- "royalblue4"
-}
-if(ncell==100) col.mat[c(45,46,55,56)] <- "tomato"
-col.mat.transp <- col.mat
-col.mat.transp[] <- col2transp(col.mat.transp)
-#############
-ts.max <- 500
 
-#############
-## Defined fishing mortality (mouhaha)
-fishing.start <- 250 # when fishing starts
-F.array <- array(0, dim=c(grid.width, grid.width, ts.max))
-F.array[,,fishing.start:ts.max] <- 0.5*max(r.growth)
-mat.ind.edge <- arrayInd(core.layout$edge.cells, .dim=c(grid.width,grid.width))
-array.ind.edge <- arrayInd.rev(rep(mat.ind.edge[,1],ts.max),
-                               rep(mat.ind.edge[,2],ts.max),
-                               rep(fishing.start:ts.max, each=ncell),
-                    .dim=c(grid.width, grid.width, ts.max))
-F.array[array.ind.edge] <- 0*max(r.growth)
-# Set up environment and matrices to hold population values
-# in recursive function call
-if(!exists("envpop")) {
-    envpop <- new.env() # create environment to store
+col.mat <<- matrix(NA, nrow=grid.width)
+
+    core.colpal <- colorRampPalette(c("tomato1","tomato2","tomato3","tomato4"))
+    edge.colpal <- colorRampPalette(c("turquoise1","turquoise3","royalblue3"))
+
+    col.mat[core.layout$core.cells] <<- core.colpal(length(core.layout$core.cells))
+    col.mat[core.layout$edge.cells] <<- edge.colpal(length(core.layout$edge.cells))
+
+    col.mat.transp <<- col.mat
+    col.mat.transp[] <<- col2transp(col.mat.transp)
+
+    #############
+    ts.max <<- 500
+
+    # Set up environment and matrices to hold population values
+    # in recursive function call
+
+    envpop <<- new.env() # create environment to store
     envpop$Ntvect <- rep(NA, ts.max)
     envpop$Ntvect[1] <- Ni
     envpop$mat <- array(NA, dim=c(grid.width, grid.width, ts.max))
     #randomNi <- rpois(ncell, Ni)
     randomNi <- rep(Ni, ncell)
-    randomNi[core.layout$edge.cells] <- 0
+    #randomNi[core.layout$edge.cells] <- 0
     envpop$mat[,,1] <- randomNi
     #envpop$mat[,,1] <- c(rep(0,4),rep(Ni,5))
     envpop$emig.mat <- array(NA, dim=dim(envpop$mat))
@@ -103,42 +107,12 @@ if(!exists("envpop")) {
     # record number of immigrants/emigrants to/by cell at every time step
     envpop$immig.store <- matrix(NA, nrow=ts.max, ncol=ncell)
     envpop$emig.store <- matrix(NA, nrow=ts.max, ncol=ncell)
-    envpop$immig.rate <- array(NA, dim=dim(envpop$mat))
-}
-
-# Dispersal component of the model:
-#
-# Define emigration rate as a linear function of N/K
-# where emigration rate is constant if N < K/2
-# and increases linearly to 'emig.max' from N = K/2 to N = K
-emig.base <- 0.1                                    # proportion of individuals that emigrate when N < K/2
-emig.max <- 0.1 # maximum proportion of individuals that emigrate from cell at
-                # each time step
-emig.slope <- 2*(emig.max - emig.base)/K
-emig.int <- emig.max-emig.slope*K
-
-calc.emig.straight <- function(wN, es.cell=emig.slope, K.cell=K) { # emigration rate as a function of N
-    emv <- es.cell * wN + emig.int
-    emv[emig.slope == 0] <- emig.max # if no gradient set to emig.max
-    emv[wN<(K.cell/2)] <- emig.base # if N < K/2, set to emigration baseline
-    emv[wN > K.cell] <- emig.max # if N > K set to maximum emigration rate
-    return(emv)
-}
-
-calc.emig.poly <- function(curv=2) {
-
-    x.start <- 0
-    x.end <- K
-    y.base <- 0
-    y.max <- 1
-
-    div10 <- 10^curv
-
-}
+    envpop$immig.rate <- array(NA, dim=c(ncell, ncell, ts.max))
 
 
 
-# set-up neighbours
+###################################################
+# DEFINE NEIGHBOURS BY CELL
  cell.index <- data.frame(index=1:ncell,
                          xx=rep(1:grid.width,each=grid.width),
                          yy=1:grid.width)
@@ -192,20 +166,54 @@ pb.neighbour <- function(wi, n=3) {
     neighbour.mat <- sapply(1:nrow(dmat), function(x) as.numeric(dmat[x,]<1.5))
 }
 
+######################################################
+######################################################
+# Dispersal component of the model:
+#
+######################################################
+##### EMIGRATION FROM NATAL CELL. START.        ######
+
+# Define emigration rate as a linear function of N/K
+# where emigration rate is constant if N < K/2
+# and increases linearly to 'emig.max' from N = K/2 to N = K
+emig.base <<- emig.base # proportion of individuals that emigrate when N < K/2
+emig.max <<- emig.max # maximum proportion of individuals that emigrate from cell at
+                # each time step
+emig.slope <- 2*(emig.max - emig.base)/K
+emig.int <- emig.max-emig.slope*K
+
+# Linear relationship between emig.base and emig.max
+calc.emig.straight <<- function(wN, es.cell=emig.slope, K.cell=K) { # emigration rate as a function of N
+    emv <- es.cell * wN + emig.int
+    emv[emig.slope == 0] <- emig.max # if no gradient set to emig.max
+    emv[wN<(K.cell/2)] <- emig.base # if N < K/2, set to emigration baseline
+    emv[wN > K.cell] <- emig.max # if N > K set to maximum emigration rate
+    return(emv)
+}
+
+#########  EMIGRATION FROM NATAL CELL. END. #########
+#####################################################
+
+#####################################################
+###### IMMIG TO NEIGHBOUR CELLS. START.      ########
+
 # habitat quality defines K
 # emigration rates from cells are higher as N -> K (reacting to existing stimuli)
 # sensing future conditions:
 # (smart immigration) alternatively, immigration rates to cell are lower as N -> K
 
 # Calculate no of immigrants by cell
-ibc.nkratio <- function(nmat, Kcell=K, pref.disp=1, pref.calc="expo") {
+ibc.nkratio <<- function(nmat, Kcell=K, pref.disp=1, add.r=FALSE,
+                        pref.calc="expo") {
 
     # take 1 - N/K ratio
     nkmat <- (1-nmat/Kcell)[c(neighbycell)]
-    nkmat[nkmat<=emig.base] <- emig.base # this allows a minimum of flow between cells
-#    nkmat[nkmat<=0.05] <- 0.05 # this allows a minimum of flow between cells
+    if(add.r) nkmat <- (r.growth*(1-nmat/Kcell))[c(neighbycell)]
+    nkmat[nkmat<(min(r.growth)*emig.base)] <- min(r.growth)*emig.base # this allows a minimum of flow between cells
     # and stabilises population dynamics
-    dim(nkmat) <- dim(neighbycell)
+    # but probably not the best way to do this
+
+    dim(nkmat) <- dim(neighbycell) # switch back to matrix
 
     # if pref.disp=0, divide by identity -> no preferential dispersal
     # if pref.disp=1, divide by 1, weighted preferential dispersal towards
@@ -216,7 +224,6 @@ ibc.nkratio <- function(nmat, Kcell=K, pref.disp=1, pref.calc="expo") {
        }
     if(pref.calc=="expo") nkmat <- nkmat^pref.disp
 
-
     # standardize to send neighbours to cell based on
     # relative pref.disp weighted proportion
     # (neighbours in columns)
@@ -226,48 +233,73 @@ ibc.nkratio <- function(nmat, Kcell=K, pref.disp=1, pref.calc="expo") {
     t(nbmat)
 }
 
-cell.dyn.slow <- function() { # Nt as a function of N_t-1
+# Calculate no of immigrants by cell -- including home cell in
+# possible 'destination'
+ibc.nkratio.wnatal <- function(nmat, Kcell=K, pref.disp=1, add.r=FALSE,
+                        pref.calc="expo") {
 
-    # Reset population matrix
-    envpop$mat[,,2:ts.max] <- NA
+    # add home cell to compare against neighbours
+    neighmat <- cbind(1:nrow(neighbycell), neighbycell)
+    # take 1 - N/K ratio
+    nkmat <- (1-nmat/Kcell)[c(neighmat)]
+    if(add.r) nkmat <- (r.growth*(1-nmat/Kcell))[c(neighmat)]
+    nkmat[nkmat==0] <- r.growth*emig.base # this allows a minimum of flow between cells
+    # and stabilises population dynamics
+    # but probably not the best way to do this
+    dim(nkmat) <- dim(neighmat) # switch back to matrix
 
-    upd.ts <- function(ts) {
+    # if pref.disp=0, divide by identity -> no preferential dispersal
+    # if pref.disp=1, divide by 1, weighted preferential dispersal towards
+    # cells with lowest N/K ratio
+    if(pref.calc=="prod") {
+           nkweight <- 1+(nkmat - 1)*(1-pref.disp)
+           nkmat <- nkmat/nkweight # apply weight to nk matrix
+       }
+    if(pref.calc=="expo") nkmat <- nkmat^pref.disp
 
-        # calculate propotion of each cell that emigrates given current N
-        prop.emig <- calc.emig.straight(envpop$mat[,,ts-1])
-        # store it
-        envpop$emig.mat[,,ts] <- prop.emig
-
-        # calculate emigration matrix for this time-step
-        # for each cell, N_t-1 * prop.emig
-        emig.by.cell <- c(envpop$mat[,,ts-1]*prop.emig)
-        # assign to each neighbour by multiplying on neighbour mat
-        # and spreading evenly over neighbours by dividing by # neighbours
-        # senders in rows, receivers in columns
-        prop.immig <- ibc.nkratio(envpop$mat[,,ts-1], pref.disp=0)
-        immig.by.cell <- apply(emig.by.cell*prop.immig, 2, sum)
-        envpop$immig.store[ts,] <- immig.by.cell
-        envpop$emig.store[ts,] <- emig.by.cell
-
-        upd.cell <- function(wcell) {
-
-            cp <- arrayInd(wcell, .dim=dim(envpop$mat))
-            Ntm1 <- envpop$mat[cp[1],cp[2],ts-1] # N_t-1 for cell
-            # calculate N_t from Ntm1, reproduction happens before emigration
-            Ntp1 <- Ntm1 + Ntm1*r*(1-Ntm1/K[wcell]) -
-                Ntm1*prop.emig[wcell] + immig.by.cell[wcell]
-            # set maximum population size to K
-            # (i.e. if number of migrants exceeds capacity, 'extra' mortality
-            # gets rid of them -- check)
-            if(Ntp1 < 0) Ntp1 <- 0
-            #if(Ntp1 > K[wcell]) Ntp1 <- K[wcell]
-            envpop$mat[cp[1],cp[2],ts] <- Ntp1
+    # add home advantage!
+    home.adv <- 1
+    nkmat[,1] <- nkmat[,1]*home.adv
 
 
-        }
-        dmm <- sapply(1:ncell, upd.cell)
-    }
-
-
-    dmm <- sapply(2:ts.max, upd.ts)
+    # standardize to send neighbours to cell based on
+    # relative pref.disp weighted proportion
+    # (neighbours in columns)
+    relprop <- nkmat/apply(nkmat, 1, sum)
+    relprop <- relprop[,-1] # remove home cell from proportions
+    nbmat <- t(neighbour.mat)
+    nbmat[nbmat==1] <- c(t(relprop))
+    t(nbmat)
 }
+
+###### IMMIG TO NEIGHBOUR CELLS. END.      ########
+###################################################
+
+
+###################################################
+###################################################
+#######              FISHING!              ########
+
+    # define F.array in global environment
+    fishing.start <- 300 # when fishing starts
+    F.array <<- array(0, dim=c(grid.width, grid.width, ts.max))
+    F.array[,,fishing.start:ts.max] <<- fish.fact*max(r.growth)
+    mat.ind.edge <- arrayInd(core.layout$edge.cells, .dim=c(grid.width,grid.width))
+    array.ind.edge <- arrayInd.rev(rep(mat.ind.edge[,1],ts.max-fishing.start+1),
+                               rep(mat.ind.edge[,2],ts.max-fishing.start+1),
+                               rep(fishing.start:ts.max, each=nrow(mat.ind.edge)),
+                    .dim=c(grid.width, grid.width, ts.max))
+    F.array[array.ind.edge] <<- fish.fact.edge*max(r.growth)
+
+    ###################################################
+    ###################################################
+    ## Launch the simulation and store update in envpop environment
+    ffunk <- formals(tm.spatial.dyn)
+    fcall <- sys.call()
+    ffunk[names(fcall)[-1]] <- fcall[-1]
+    envpop$run.info <- ffunk
+
+    cell.dyn(pref.disp=pref.disp, add.r=add.r.pref)
+}
+
+

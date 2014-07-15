@@ -4,7 +4,33 @@
 ## -------------------------------------------------------
 ## Author: Laura Tremblay-Boyer (l.boyer@fisheries.ubc.ca)
 ## Written on: June 16, 2014
-## Time-stamp: <2014-06-19 11:35:16 Laura>
+## Time-stamp: <2014-07-14 10:56:32 Laura>
+
+########################################################
+# format information on run parameters to include unobstrusively
+# in plot.emat() graph
+format.run.info <- function(ri=envpop$run.info) {
+
+    ri.tog <- paste(names(ri), ri, sep="=")
+    pu <- par("usr")
+
+    gx <- grconvertX(c(0.02,0.99), from="ndc")
+    gy <- grconvertY(0.01, from="ndc")
+    gwidth <- gx[2]-gx[1]
+    srf <- max(strwidth(ri.tog, vfont=c("sans serif","plain")))
+    sh <- max(strheight(ri.tog, vfont=c("sans serif","plain")))
+    num.str <- floor(gwidth/srf)
+    num.lines <- ceiling(length(ri.tog)/num.str)
+
+    text(gx[1],gy+3*sh, "*", offset=0, xpd=NA, pos=4, col="grey50")
+    text(gx[1],gy+3*sh, paste(ri.tog[1:num.str], collapse=", "),
+         xpd=NA, pos=4, col="grey50")
+    text(gx[1],gy+1.5*sh, paste(ri.tog[(num.str+1):(2*num.str)], collapse=", "),
+         xpd=NA, pos=4, col="grey50")
+    text(gx[1],gy, paste(ri.tog[(2*num.str+1):length(ri.tog)], collapse=", "),
+         xpd=NA, pos=4, col="grey50")
+
+}
 
 ## 1. Panel plot overview of population abundance by cell over time
 ## with zoom on last 50 timesteps, map of cell layout + K,
@@ -24,7 +50,7 @@ plot.emat <- function(emat=envpop$mat, show.nk=FALSE) {
                                                 lwd=2, col=col.mat.transp[rr]))
     }
     check.dev.size(6.4, 7.75)
-    par(mai=rep(0.3,4), omi=c(0.1,0.5,0.5,0.1), family="HersheySans")
+    par(mai=rep(0.3,4), omi=c(0.65,0.5,0.35,0.5), family="HersheySans")
     layout(rbind(3,c(1,2)),height=c(2,1),width=c(2,1))
     im.mat <- 1: (nrow(emat)*ncol(emat))
     attr(im.mat,"dim") <- dim(emat)[1:2]
@@ -55,6 +81,8 @@ plot.emat <- function(emat=envpop$mat, show.nk=FALSE) {
     fname <- sprintf("Theo-mod_range-contrxn_emigbase-%s_emigmax-%s_habtype-%s",
                      emig.base, emig.max, habtype)
     fname <- gsub("\\.","",fname)
+
+    format.run.info()
     dev.copy2pdf(file=paste(fname,".pdf",sep=""))
 }
 
@@ -90,7 +118,7 @@ plot.ratio.ei <- function(imat1=envpop$immig.store,
     ratio.mat <- emat1/imat1 # if e > i, source, else sink
 
     ymax <- range(ratio.mat, na.rm=TRUE)
-    ymax <- c(0.8,1.2)
+    ymax <- c(0,2)
     plot(0, type="n", xlim=c(0,ts.max), ylim=ymax, las=1, ann=FALSE)
     abline(h=1)
     dmm <- sapply(1:ncell, function(x) lines(1:ts.max, ratio.mat[,x],
@@ -109,7 +137,8 @@ plot.ratio.ei <- function(imat1=envpop$immig.store,
 ########################################################################
 ########################################################################
 ## Map of cell abundance over time for defined time-steps
-map.abund <- function(popmat=envpop$mat, global.scale=TRUE) {
+## mark as exctinct if decline over 95%
+map.abund <- function(popmat=envpop$mat, K.thresh=0.05, global.scale=TRUE) {
 
     check.dev.size(6.35,7.75)
     par(family="HersheySans", mfrow=c(7,5),
@@ -117,6 +146,7 @@ map.abund <- function(popmat=envpop$mat, global.scale=TRUE) {
 
     dn <- dimnames(popmat)
     tsv <- c(1:9, seq(10, 100, by=10), seq(200, 950, by=50))
+    tsv <- tsv[tsv <= dim(envpop$mat)[3]]
     popmat <- popmat/K
 
     if(global.scale) {
@@ -131,6 +161,7 @@ map.abund <- function(popmat=envpop$mat, global.scale=TRUE) {
     map.ts <- function(ts) {
 
         imat <- popmat[,,ts]
+        imat[imat<K.thresh] <- 0
 
         if(!global.scale) {
         abund.breaks <- seq(min(imat), max(imat), length=21)
@@ -150,4 +181,52 @@ map.abund <- function(popmat=envpop$mat, global.scale=TRUE) {
     }
 
     dmm <- sapply(tsv, map.ts)
+}
+
+########################################################################
+########################################################################
+plot.cell.layout <- function(emat=envpop$mat) {
+
+    check.dev.size(5,5)
+    par(mai=rep(0.3,4), family="HersheySans")
+    im.mat <- 1: (nrow(emat)*ncol(emat))
+    attr(im.mat,"dim") <- dim(emat)[1:2]
+    ymax <- max(emat, na.rm=TRUE)
+    image(1:nrow(emat),1:ncol(emat),
+          im.mat, col=c(col.mat),asp=1,axes=FALSE,
+          xlab="", ylab="")
+    box()
+    text(cell.index$xx, cell.index$yy,
+         paste(paste("#", cell.index$index,sep=""),
+               K, r.growth, sep="//"), cex=0.5,
+         col="black", vfont=c("sans serif","bold"))
+    mtext("Cell layout and K", adj=0)
+    abline(h=(1:nrow(emat))-0.5)
+    abline(v=(1:nrow(emat))-0.5)
+}
+
+
+########################################################################
+########################################################################
+plot.tm.aor <- function(popmat=envpop$mat, pres.thresh=0) {
+
+    abund.ts <- apply(popmat, 3, sum)
+    area.ts <- apply((floor(popmat))>pres.thresh, 3, sum)
+
+    plot(abund.ts, area.ts)
+
+
+    invisible(list(abund=abund.ts, area=area.ts))
+}
+
+###################################################
+###################################################
+plot.fish.biom <- function(pmat=envpop$mat) {
+
+    plot(c(F.array[,,ts.max]), c(pmat[,,ts.max]/K), ylim=c(0,1))
+
+
+
+
+
 }
