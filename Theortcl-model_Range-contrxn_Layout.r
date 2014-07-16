@@ -4,7 +4,7 @@
 ## -------------------------------------------------------
 ## Author: Laura Tremblay-Boyer (l.boyer@fisheries.ubc.ca)
 ## Written on: June  3, 2014
-## Time-stamp: <2014-07-14 13:35:12 Laura>
+## Time-stamp: <2014-07-15 17:27:08 Laura>
 require(colorspace)
 require(Rcpp)
 source("Theortcl-model_Range-contrxn_Cpp.r")

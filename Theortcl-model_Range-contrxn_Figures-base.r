@@ -4,7 +4,7 @@
 ## -------------------------------------------------------
 ## Author: Laura Tremblay-Boyer (l.boyer@fisheries.ubc.ca)
 ## Written on: June 16, 2014
-## Time-stamp: <2014-07-15 12:27:59 Laura>
+## Time-stamp: <2014-07-15 17:50:13 Laura>
 ########################################################
 # Define general labels and such
 
@@ -218,12 +218,16 @@ plot.cell.layout <- function(emat=envpop$mat) {
 
 ########################################################################
 ########################################################################
-plot.tm.aor <- function(popmat=envpop$mat, pres.thresh=0) {
+plot.tm.aor <- function(popmat=envpop$mat, pres.thresh=0, add=FALSE, ...) {
 
     abund.ts <- apply(popmat, 3, sum)
-    area.ts <- apply((floor(popmat))>pres.thresh, 3, sum)
+    area.ts <- apply((floor(popmat))>(pres.thresh*K), 3, sum)
 
-    plot(abund.ts, area.ts)
+    if(!add) {
+        plot(abund.ts, area.ts, las=1, xlab="", ylab="", xaxt="n",pch=19, ...)
+
+        axis(1, labels=NA)
+    }else{        points(abund.ts, area.ts, pch=20, ...) }
 
 
     invisible(list(abund=abund.ts, area=area.ts))
@@ -258,13 +262,14 @@ plot.scen.ts <- function(scen.list, F.type="even", show.nk=FALSE) {
 
         cellv <- 1:ncell
         mi <- arrayInd(cellv, .dim=c(grid.width, grid.width))
+        abline(v=300, col="grey", lty=3)
         dmm <- sapply(cellv, function(rr) lines(emat[mi[rr,1],
                                                      mi[rr,2],]/ifelse(show.nk,K[rr],1),
                                                 lwd=2, col=col.mat.transp[rr]))
         mtext(emig.lab[wtype], adj=0)
     }
 
-    check.dev.size(9.3, 4.5)
+    check.dev.size(9.3, 3.5)
     par(mfrow=c(1,3), mai=rep(0.1,4), omi=c(0.65,0.75,0.85,0.1), family="HersheySans")
 
     plines("base", c(0, ts.max))
