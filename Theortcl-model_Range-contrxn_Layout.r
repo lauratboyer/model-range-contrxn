@@ -4,7 +4,7 @@
 ## -------------------------------------------------------
 ## Author: Laura Tremblay-Boyer (l.boyer@fisheries.ubc.ca)
 ## Written on: June  3, 2014
-## Time-stamp: <2014-07-15 17:27:08 Laura>
+## Time-stamp: <2014-07-18 17:39:44 Laura>
 require(colorspace)
 require(Rcpp)
 source("Theortcl-model_Range-contrxn_Cpp.r")
@@ -17,8 +17,11 @@ tm.spatial.dyn <- function(emig.base=0.1, emig.max=emig.base,
                            pref.disp=0, add.r.pref=FALSE,
                            grid.width = 5) {
 
+  if(add.r.pref) pref.disp <- 2
+
     ## Model parameters
-    ncell <- grid.width^2 ## Number of cells
+    grid.width <<- grid.width
+    ncell <<- grid.width^2 ## Number of cells
 
     ## Population parameters
     r.growth <<- rep(r.growth.core, ncell) # growth rate
@@ -63,12 +66,13 @@ calc.core.size <- function(n=ncell) {
     core.layout <- calc.core.size(ncell)
 
     ### Set up habitat
-    habtype <- "core" # should be 'core','even', 'random'
+    habtype <<- "core" # should be 'core','even', 'random'
     if(habtype=="random") K <- rpois(ncell, 10000)
     if(habtype=="core") {
     K <<- rep(K.core, ncell)
     #[core.layout$edge.cells] <- K.edge
     r.growth[core.layout$edge.cells] <<- r.growth.edge
+    #r.mrt <<- r.growth # mortality rate
     #r.mrt[core.layout$edge.cells] <- r.growth[core.layout$edge.cells]
 }
 
@@ -113,7 +117,7 @@ col.mat <<- matrix(NA, nrow=grid.width)
 
 ###################################################
 # DEFINE NEIGHBOURS BY CELL
- cell.index <- data.frame(index=1:ncell,
+ cell.index <<- data.frame(index=1:ncell,
                          xx=rep(1:grid.width,each=grid.width),
                          yy=1:grid.width)
 boundary.opt <- "periodic"

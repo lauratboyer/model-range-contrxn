@@ -4,7 +4,7 @@
 ## -------------------------------------------------------
 ## Author: Laura Tremblay-Boyer (l.boyer@fisheries.ubc.ca)
 ## Written on: June 16, 2014
-## Time-stamp: <2014-07-15 17:50:13 Laura>
+## Time-stamp: <2014-07-17 12:01:10 Laura>
 ########################################################
 # Define general labels and such
 
@@ -192,24 +192,31 @@ map.abund <- function(popmat=envpop$mat, K.thresh=0.05, global.scale=TRUE) {
 
 ########################################################################
 ########################################################################
-plot.cell.layout <- function(emat=envpop$mat) {
-
+plot.cell.layout <- function( add.info=TRUE) {
+  #emat=envpop$mat
     check.dev.size(5,5)
     par(mai=rep(0.3,4), family="HersheySans")
-    im.mat <- 1: (nrow(emat)*ncol(emat))
-    attr(im.mat,"dim") <- dim(emat)[1:2]
-    ymax <- max(emat, na.rm=TRUE)
-    image(1:nrow(emat),1:ncol(emat),
-          im.mat, col=c(col.mat),asp=1,axes=FALSE,
+    im.mat <- 1:25#(nrow(emat)*ncol(emat))
+    attr(im.mat,"dim") <- c(5,5) #dim(emat)[1:2]
+#    ymax <- max(emat, na.rm=TRUE)
+#    image(1:nrow(emat),1:ncol(emat),
+#          im.mat, col=c(col.mat),asp=1,axes=FALSE,
+#          xlab="", ylab="")
+ image(1:5,1:5,
+          im.mat, col=col.mat,asp=1,axes=FALSE,
           xlab="", ylab="")
     box()
+    if(add.info) {
     text(cell.index$xx, cell.index$yy,
          paste(paste("#", cell.index$index,sep=""),
                K, r.growth, sep="//"), cex=0.5,
          col="black", vfont=c("sans serif","bold"))
     mtext("Cell layout and K", adj=0)
-    abline(h=(1:nrow(emat))-0.5)
-    abline(v=(1:nrow(emat))-0.5)
+  }
+#    abline(h=(1:nrow(emat))-0.5)
+#    abline(v=(1:nrow(emat))-0.5)
+    abline(h=(1:5)-0.5)
+    abline(v=(1:5)-0.5)
 
     dev.copy2pdf(file="tm-range-dyn_cell-layout-map.pdf")
 
