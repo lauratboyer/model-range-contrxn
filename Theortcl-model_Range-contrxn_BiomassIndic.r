@@ -4,7 +4,7 @@
 ## -------------------------------------------------------
 ## Author: Laura Tremblay-Boyer (l.boyer@fisheries.ubc.ca)
 ## Written on: July 18, 2014
-## Time-stamp: <2014-07-19 09:18:04 Laura>
+## Time-stamp: <2014-07-19 12:42:45 Laura>
 
 # core.edge.fact controls the different in growth between
 # core and edge regions
@@ -64,5 +64,6 @@ abund.vs.ce <- function(emig.base=0.1, pref.disp=0, add.r.pref=FALSE) {
   sum.all <- sapply(rg.core.vect, function(rgc)
                     sapply(rg.edge.factor, function(rec)
                            get.bio(rgc, rec)))
-
 }
+
+

@@ -4,7 +4,7 @@
 ## -------------------------------------------------------
 ## Author: Laura Tremblay-Boyer (l.boyer@fisheries.ubc.ca)
 ## Written on: June  3, 2014
-## Time-stamp: <2014-07-18 17:39:44 Laura>
+## Time-stamp: <2014-07-20 16:44:59 Laura>
 require(colorspace)
 require(Rcpp)
 source("Theortcl-model_Range-contrxn_Cpp.r")
@@ -63,7 +63,7 @@ calc.core.size <- function(n=ncell) {
     return(list(core.mat=core.mat,core.cells=core.ind,edge.cells=edge.ind))
 }
 
-    core.layout <- calc.core.size(ncell)
+    core.layout <<- calc.core.size(ncell)
 
     ### Set up habitat
     habtype <<- "core" # should be 'core','even', 'random'

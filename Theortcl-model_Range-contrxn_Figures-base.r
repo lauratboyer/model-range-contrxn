@@ -4,13 +4,13 @@
 ## -------------------------------------------------------
 ## Author: Laura Tremblay-Boyer (l.boyer@fisheries.ubc.ca)
 ## Written on: June 16, 2014
-## Time-stamp: <2014-07-17 12:01:10 Laura>
+## Time-stamp: <2014-07-20 14:14:16 Laura>
 ########################################################
 # Define general labels and such
 
 emig.lab <- c("No dispersal", "Even emigration", "Preferential emigration")
 names(emig.lab) <- c("base","emig","wpref")
-ftype.lab <- c("Even throughout the range","Higher in core", "Higher in edges")
+ftype.lab <- c("Even F throughout the range","Higher F in core", "Higher F in edges")
 names(ftype.lab) <- c("even","core","edge")
 
 ########################################################
@@ -250,20 +250,22 @@ plot.fish.biom <- function(pmat=envpop$mat) {
 ###################################################
 ###################################################
 ## Plot scenario time-series (3) (i.e. top panel of emat)
-plot.scen.ts <- function(scen.list, F.type="even", show.nk=FALSE) {
-
-    # define scenarios to show in plot:
-    scen.sub <- scen.list[[F.type]]
+plot.scen.ts <- function(scen.list, show.nk=FALSE) {
 
     Know <- attr(scen.list, "K")
     rgval <- attr(scen.list, "rgval")
+    grid.width <- attr(scen.list, "grid.width")
     hab.struct <- ifelse(rgval[1]!=rgval[2], "Core-edge", "Even")
 
-    plines <- function(wtype, xl) {
+    plines <- function(wtype, xl, F.type) {
 
-        emat <- scen.sub[[wtype]]
-        ymax <- ifelse(show.nk, 1.25, max(Know))
-        plot(1:10, type="n", xlim=xl, ylim=c(0,ymax), las=1,
+      # scenarios to show in plot:
+      scen.sub <- scen.list[[F.type]]
+
+      emat <- scen.sub[[wtype]]
+      ymax <- ifelse(show.nk, 1.25, max(Know))
+      plot(1:10, type="n", xlim=xl, ylim=c(0,ymax), las=1,
+           xaxt=ifelse(F.type=="edge","t","n"),
              yaxt=ifelse(wtype=="base", "t", "n"))
         abline(h=K, col=c(col.mat.transp), lwd=0.5)
 
@@ -273,15 +275,24 @@ plot.scen.ts <- function(scen.list, F.type="even", show.nk=FALSE) {
         dmm <- sapply(cellv, function(rr) lines(emat[mi[rr,1],
                                                      mi[rr,2],]/ifelse(show.nk,K[rr],1),
                                                 lwd=2, col=col.mat.transp[rr]))
-        mtext(emig.lab[wtype], adj=0)
+      pu <- par("usr")
+      if(F.type=="even") text(mean(pu[1:2]), pu[4] + 5*lh,
+           toupper(emig.lab[wtype]), col="royalblue4",
+           vfont=c("sans serif","bold"), xpd=NA, cex=1.5)
+
+      if(wtype=="base") text(pu[1],pu[4] + 1*lh,
+           ftype.lab[F.type],xpd=NA, pos=4, cex=1.5,
+           vfont=c("sans serif", "bold"), offset=0, col="royalblue3")
     }
 
-    check.dev.size(9.3, 3.5)
-    par(mfrow=c(1,3), mai=rep(0.1,4), omi=c(0.65,0.75,0.85,0.1), family="HersheySans")
+    check.dev.size(9.3, 8)
+    par(mfrow=c(3,3), mai=c(0.1,0.1,0.5,0.1), omi=c(0.65,0.75,0.65,0.1), family="HersheySans")
+    lh <- strheight("I", vfont=c("sans serif","plain")) # line height for labels
 
-    plines("base", c(0, ts.max))
-    plines("emig", c(0, ts.max))
-    plines("wpref", c(0, ts.max))
+    sapply(names(scen.list), function(ft) {
+      plines("base", c(0, ts.max), ft);
+      plines("emig", c(0, ts.max), ft);
+      plines("wpref", c(0, ts.max), ft)})
 
     mtext("Population size (# of individuals)", side=2, outer=TRUE, line=4)
     mtext("Timesteps", side=1, outer=TRUE, line=3)
@@ -290,14 +301,12 @@ plot.scen.ts <- function(scen.list, F.type="even", show.nk=FALSE) {
     # General plot label
     px <- grconvertX(0, from="nic")
     py <- grconvertY(0.95, from="ndc")
-    lh <- strheight("I", vfont=c("sans serif","plain"))
-    text(px, py-3*lh, sprintf("Fishing mortality: %s", ftype.lab[F.type]),
-         pos=4, cex=1.75, xpd=NA)
-    text(px, py, sprintf("Habitat structure: %s", hab.struct),
-         pos=4, cex=1.75, xpd=NA)
 
-    fname <- sprintf("tm-range-contrxn_ts-3-scen_HS-%s_FM-%s.pdf",
-                     hab.struct, F.type)
+    text(px, py, sprintf("%s habitat structure", hab.struct),
+         pos=4, cex=2.25, xpd=NA)
+
+    fname <- sprintf("tm-range-contrxn_ts-3-scen_HS-%s_FMx3.pdf",
+                     hab.struct)
     dev.copy2pdf(file=fname)
 }
 

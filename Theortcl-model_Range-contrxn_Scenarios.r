@@ -3,7 +3,7 @@
 ## -------------------------------------------------------
 ## Author: Laura Tremblay-Boyer (l.boyer@fisheries.ubc.ca)
 ## Written on: July 14, 2014
-## Time-stamp: <2014-07-15 17:54:24 Laura>
+## Time-stamp: <2014-07-20 16:55:14 Laura>
 
 ########################################################
 scenario.run <- function(rgcore = 0.2, rgedge=rgcore, Fval=0.5) {
@@ -58,6 +58,8 @@ scenario.run <- function(rgcore = 0.2, rgedge=rgcore, Fval=0.5) {
     attr(scenl, "Fval") <- Fval
     attr(scenl, "K") <- K
     attr(scenl, "rgval") <- c(core=rgcore, edge=rgedge)
+    attr(scenl, "grid.width") <- grid.width
+    attr(scenl, "core.layout") <- core.layout
     return(scenl)
 }
 
@@ -105,39 +107,43 @@ comp.scen.ec <- function(sim.list=ee.lowF, scen="emig",
 
 histo.scenario <- function(scen.list) {
 
-
     check.dev.size(7, 6)
     par(family="HersheySans", mfrow=c(2,1),
         omi=c(0.1,0.6,0,0.2), mai=c(0.1,0.25,0.95,0.2))
     Fval <- attr(scen.list[[1]], "Fval")
 
    draw.panel <- function(wscen) {
-   rgval <- attr(wscen, "rgval")
-    hab.struct <- ifelse(rgval[1]!=rgval[2], "Core-edge", "Even")
-    scen.emig <- comp.scen.ec(wscen, scen="emig")
+
+     rgval <- attr(wscen, "rgval")
+     hab.struct <- ifelse(rgval[1]!=rgval[2], "Core-edge", "Even")
+
+     scen.emig <- comp.scen.ec(wscen, scen="emig")
     scen.wpref <- comp.scen.ec(wscen, scen="wpref")
     comp.mat <- rbind(scen.emig$mean, scen.wpref$mean)
+     comp.mat <- rbind(comp.mat[c(1,3,5,2,4,6)],
+                       comp.mat[c(7,9,11,8,10,12)])
 
     spacev <- c(0.1, rep(c(0.1,1),2),0.1,3,rep(c(0.1,1),2),0.1)
 
     bp <- barplot(comp.mat,ylim=c(-50, 50), beside=TRUE,
                   las=1, col=NA,
                   space=spacev, xlim=c(0,20), border=NA)
-    abline(h=0, col="grey")
-bp <- barplot(comp.mat,ylim=c(-50, 50), beside=TRUE, las=1, add=TRUE,,
-              col=c(rep(c("tomato1","tomato3"),3),
-              rep(c("royalblue1","royalblue3"),3)),
-              space=spacev, xlim=c(0,20), density=c(50,NA),
+   abline(h=0, col="grey")
+   bp <- barplot(comp.mat,ylim=c(-50, 50), beside=TRUE, las=1, add=TRUE,,
+              col=c(rep(c("tomato1","royalblue1"),3),
+              rep(c("tomato2","royalblue2"),3)),
+              space=spacev, xlim=c(0,20), density=c(rep(50,6), rep(NA,6)),
               border=NA)
-sh <- strheight("l", vfont=c("sans serif", "plain"))
-xpos <- apply(bp,2,mean)
-text(xpos, rep(40, 6), c("even.F", "core.F", "edge.F"))
-text(mean(xpos[1:3]), 40+2*sh, "CORE",xpd=NA, cex=1.5)
-text(mean(xpos[4:6]), 40+2*sh, "EDGE",xpd=NA, cex=1.5)
-#text(mean(xpos[5:6]), 40+2*sh, "F: edges",xpd=NA, cex=1.5)
-   mtext(sprintf("Habitat structure: %s", hab.struct),
-         adj=0, cex=1.5, line=1.5)
 
+   ## Add labels
+   sh <- strheight("l", vfont=c("sans serif", "plain"))
+   xpos <- apply(bp,2,mean)
+   text(xpos, rep(40, 6), c("even.F", "core.F", "edge.F"))
+   text(mean(xpos[1:3]), 40+2.5*sh, "EVEN EMIG",xpd=NA, cex=1.25)
+   text(mean(xpos[4:6]), 40+2.5*sh, "PREF EMIG",xpd=NA, cex=1.25)
+   #text(mean(xpos[5:6]), 40+2*sh, "F: edges",xpd=NA, cex=1.5)
+   mtext(sprintf("Habitat structure: %s", hab.struct),
+         adj=0, cex=1.5, line=2)
 }
 
    dmm <- lapply(scen.list, draw.panel)
