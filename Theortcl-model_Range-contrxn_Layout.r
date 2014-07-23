@@ -4,20 +4,16 @@
 ## -------------------------------------------------------
 ## Author: Laura Tremblay-Boyer (l.boyer@fisheries.ubc.ca)
 ## Written on: June  3, 2014
-## Time-stamp: <2014-07-20 16:44:59 Laura>
+## Time-stamp: <2014-07-23 16:11:51 Laura>
 require(colorspace)
 require(Rcpp)
-source("Theortcl-model_Range-contrxn_Cpp.r")
-source("Theortcl-model_Range-contrxn_Figures-base.r")
 
 tm.spatial.dyn <- function(emig.base=0.1, emig.max=emig.base,
-                           r.growth.core=0.05, r.growth.edge=r.growth.core,
+                           r.growth.core=0.1, r.growth.edge=r.growth.core,
                            K.core=10000, K.edge=K.core,
                            fish.fact=0, fish.fact.edge=fish.fact,
                            pref.disp=0, add.r.pref=FALSE,
                            grid.width = 5) {
-
-  if(add.r.pref) pref.disp <- 2
 
     ## Model parameters
     grid.width <<- grid.width
@@ -67,7 +63,7 @@ calc.core.size <- function(n=ncell) {
 
     ### Set up habitat
     habtype <<- "core" # should be 'core','even', 'random'
-    if(habtype=="random") K <- rpois(ncell, 10000)
+    if(habtype=="random") K <- rpois(ncell, K.core)
     if(habtype=="core") {
     K <<- rep(K.core, ncell)
     #[core.layout$edge.cells] <- K.edge
@@ -111,7 +107,9 @@ col.mat <<- matrix(NA, nrow=grid.width)
     # record number of immigrants/emigrants to/by cell at every time step
     envpop$immig.store <- matrix(NA, nrow=ts.max, ncol=ncell)
     envpop$emig.store <- matrix(NA, nrow=ts.max, ncol=ncell)
+    envpop$nkmat <- matrix(NA, nrow=ts.max, ncol=ncell)
     envpop$immig.rate <- array(NA, dim=c(ncell, ncell, ts.max))
+
 
 
 
@@ -159,7 +157,7 @@ pb.neighbour <- function(wi, n=3) {
     # i.e. neighbours of cell i are in neighbour.mat[i,]
     neighbour.mat <- t(sapply(1:ncell, function(x) pb.neighbour(x, grid.width)))
     num.neigh <- apply(neighbour.mat, 1, sum)
-    neighbycell <- t(apply(neighbour.mat==1, 1, which))
+    neighbycell <<- t(apply(neighbour.mat==1, 1, which))
 
 }else{
 
@@ -207,15 +205,32 @@ calc.emig.straight <<- function(wN, es.cell=emig.slope, K.cell=K) { # emigration
 # (smart immigration) alternatively, immigration rates to cell are lower as N -> K
 
 # Calculate no of immigrants by cell
-ibc.nkratio <<- function(nmat, Kcell=K, pref.disp=1, add.r=FALSE,
+ibc.nkratio <<- function(ts.now, nmat, Kcell=K, pref.disp=1, add.r=FALSE,
                         pref.calc="expo") {
 
-    # take 1 - N/K ratio
-    nkmat <- (1-nmat/Kcell)[c(neighbycell)]
-    if(add.r) nkmat <- (r.growth*(1-nmat/Kcell))[c(neighbycell)]
-    nkmat[nkmat<(min(r.growth)*emig.base)] <- min(r.growth)*emig.base # this allows a minimum of flow between cells
+  # When weighing preference, use equilibrium edge K to scale
+  # preference
+  use.K.edge.pref <- TRUE
+  if(use.K.edge.pref) Kcell[core.layout$edge.cells] <- K.core*r.growth.edge/r.growth.core
+
+  # take 1 - N/K ratio for each neighbour -- nkmat becomes a vector
+  # of the same length as object neighbycell
+  nkmat <- exp((1-nmat/Kcell)[c(neighbycell)])
+
+  # ... if r counts in preferred dispersal, add r in product instead
+  if(add.r) nkmat <- r.growth*nkmat
+
+  # set minimum dispersal rate between cells:
+  # ** note that this results in a sharp change once edge cells reach
+  # ** x% of their effective carrying capacity
+# if(any(nkmat<(min(r.growth)*emig.base))) {
+  #  nkmat[nkmat<(min(r.growth)*emig.base)] <- min(r.growth)*emig.base # this allows a minimum of flow between cells
+#   nkmat[nkmat<(min(r.growth)*0.05)] <- min(r.growth)*0.05 # this allows a minimum of flow between cells
+ #   print(ts.now)}
     # and stabilises population dynamics
     # but probably not the best way to do this
+  #envpop$nkmat[ts.now,] <- nkmat
+
 
     dim(nkmat) <- dim(neighbycell) # switch back to matrix
 
@@ -231,9 +246,12 @@ ibc.nkratio <<- function(nmat, Kcell=K, pref.disp=1, add.r=FALSE,
     # standardize to send neighbours to cell based on
     # relative pref.disp weighted proportion
     # (neighbours in columns)
+    if(ts.now %in% seq(0,500,by=50)) print(range(nkmat))
+
     relprop <- nkmat/apply(nkmat, 1, sum)
     nbmat <- t(neighbour.mat)
     nbmat[nbmat==1] <- c(t(relprop))
+
     t(nbmat)
 }
 
@@ -273,6 +291,7 @@ ibc.nkratio.wnatal <- function(nmat, Kcell=K, pref.disp=1, add.r=FALSE,
     relprop <- relprop[,-1] # remove home cell from proportions
     nbmat <- t(neighbour.mat)
     nbmat[nbmat==1] <- c(t(relprop))
+
     t(nbmat)
 }
 
@@ -304,6 +323,15 @@ ibc.nkratio.wnatal <- function(nmat, Kcell=K, pref.disp=1, add.r=FALSE,
     envpop$run.info <- ffunk
 
     cell.dyn(pref.disp=pref.disp, add.r=add.r.pref)
+}
+
+
+if(!exists("everything.in")) {
+  source("Theortcl-model_Range-contrxn_Cpp.r")
+  source("Theortcl-model_Range-contrxn_Figures-base.r")
+  source("Theortcl-model_Range-contrxn_Scenarios.r")
+  source("Theortcl-model_Range-contrxn_BiomassIndic.r")
+  everything.in <- TRUE
 }
 
 

@@ -61,7 +61,7 @@ cell.dyn <- function(pref.disp=0, add.r=FALSE, use.home=FALSE, emig.before=TRUE)
         prop.emig <- calc.emig.straight(matnow)
 
         if(use.home){
-            pi <- ibc.nkratio.wnatal(matnow, pref.disp=pref.disp, add.r=add.r)
+            pi <- ibc.nkratio.wnatal(ts, matnow, pref.disp=pref.disp, add.r=add.r)
             prop.emig <- apply(pi, 1, sum) # emigration sum of relative proportions that go to neighbours
 
         }
@@ -78,7 +78,7 @@ cell.dyn <- function(pref.disp=0, add.r=FALSE, use.home=FALSE, emig.before=TRUE)
         # assign to each neighbour by multiplying on neighbour mat
         # and spreading evenly over neighbours by dividing by # neighbours
         # senders in rows, receivers in columns
-        prop.immig <- ibc.nkratio(matnow, pref.disp=pref.disp, add.r=add.r)
+        prop.immig <- ibc.nkratio(ts, matnow, pref.disp=pref.disp, add.r=add.r)
         envpop$immig.rate[,,ts] <- prop.immig
         immig.by.cell <- apply(emig.by.cell*prop.immig, 2, sum)
         envpop$immig.store[ts,] <- immig.by.cell

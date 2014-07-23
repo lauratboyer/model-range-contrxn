@@ -4,7 +4,7 @@
 ## -------------------------------------------------------
 ## Author: Laura Tremblay-Boyer (l.boyer@fisheries.ubc.ca)
 ## Written on: June 16, 2014
-## Time-stamp: <2014-07-20 14:14:16 Laura>
+## Time-stamp: <2014-07-23 16:18:01 Laura>
 ########################################################
 # Define general labels and such
 
@@ -250,13 +250,13 @@ plot.fish.biom <- function(pmat=envpop$mat) {
 ###################################################
 ###################################################
 ## Plot scenario time-series (3) (i.e. top panel of emat)
-plot.scen.ts <- function(scen.list, show.nk=FALSE) {
+plot.scen.ts <- function(scen.list=list(ee.lowF, ce.lowF), show.nk=FALSE) {
 
     Know <- attr(scen.list, "K")
     rgval <- attr(scen.list, "rgval")
     grid.width <- attr(scen.list, "grid.width")
     hab.struct <- ifelse(rgval[1]!=rgval[2], "Core-edge", "Even")
-
+print(hab.struct)
     plines <- function(wtype, xl, F.type) {
 
       # scenarios to show in plot:
@@ -275,7 +275,9 @@ plot.scen.ts <- function(scen.list, show.nk=FALSE) {
         dmm <- sapply(cellv, function(rr) lines(emat[mi[rr,1],
                                                      mi[rr,2],]/ifelse(show.nk,K[rr],1),
                                                 lwd=2, col=col.mat.transp[rr]))
-      pu <- par("usr")
+    pu <- par("usr")
+    lh <- strheight("I", vfont=c("sans serif","plain")) # line height for labels
+
       if(F.type=="even") text(mean(pu[1:2]), pu[4] + 5*lh,
            toupper(emig.lab[wtype]), col="royalblue4",
            vfont=c("sans serif","bold"), xpd=NA, cex=1.5)
@@ -287,7 +289,6 @@ plot.scen.ts <- function(scen.list, show.nk=FALSE) {
 
     check.dev.size(9.3, 8)
     par(mfrow=c(3,3), mai=c(0.1,0.1,0.5,0.1), omi=c(0.65,0.75,0.65,0.1), family="HersheySans")
-    lh <- strheight("I", vfont=c("sans serif","plain")) # line height for labels
 
     sapply(names(scen.list), function(ft) {
       plines("base", c(0, ts.max), ft);

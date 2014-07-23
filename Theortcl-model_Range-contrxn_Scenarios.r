@@ -3,7 +3,7 @@
 ## -------------------------------------------------------
 ## Author: Laura Tremblay-Boyer (l.boyer@fisheries.ubc.ca)
 ## Written on: July 14, 2014
-## Time-stamp: <2014-07-20 16:55:14 Laura>
+## Time-stamp: <2014-07-23 16:10:38 Laura>
 
 ########################################################
 scenario.run <- function(rgcore = 0.2, rgedge=rgcore, Fval=0.5) {
@@ -67,9 +67,9 @@ scenario.run <- function(rgcore = 0.2, rgedge=rgcore, Fval=0.5) {
 ## expected compared to no dispersal version
 
 if(!exists("ee.lowF")) ee.lowF <- scenario.run()
-if(!exists("ee.highF")) ee.highF <- scenario.run(Fval=0.8)
+#if(!exists("ee.highF")) ee.highF <- scenario.run(Fval=0.8)
 if(!exists("ce.lowF")) ce.lowF <- scenario.run(rgedge=0.1)
-if(!exists("ce.highF")) ce.highF <- scenario.run(rgedge=0.1, Fval=0.8)
+#if(!exists("ce.highF")) ce.highF <- scenario.run(rgedge=0.1, Fval=0.8)
 
 comp.scen.ec <- function(sim.list=ee.lowF, scen="emig",
                          calc.type="absolute") { #scen is emig or wpref

@@ -4,7 +4,7 @@
 ## -------------------------------------------------------
 ## Author: Laura Tremblay-Boyer (l.boyer@fisheries.ubc.ca)
 ## Written on: July 18, 2014
-## Time-stamp: <2014-07-19 12:42:45 Laura>
+## Time-stamp: <2014-07-23 10:44:10 Laura>
 
 # core.edge.fact controls the different in growth between
 # core and edge regions
@@ -48,7 +48,7 @@ bioF <- function(core.edge.fact=1, fmort=0.5,
 ## under various core/edge growth structures
 abund.vs.ce <- function(emig.base=0.1, pref.disp=0, add.r.pref=FALSE) {
 
-    rg.core.vect <- seq(0.05, 0.25, by=0.05)
+    rg.core.vect <- seq(0.05, 0.25, by=0.1)
     rg.edge.factor <- seq(1,5,by=0.5)
 
   get.bio <- function(rg.core=0.1, edge.fact=0.1) {
@@ -66,4 +66,51 @@ abund.vs.ce <- function(emig.base=0.1, pref.disp=0, add.r.pref=FALSE) {
                            get.bio(rgc, rec)))
 }
 
+### Run biomass sims
+if(!exists("run.bio.sims")) {
 
+  bio.prm.df <- expand.grid(emig.base=c(0.05,0.1,0.15,0.2,0.25),
+                            pref.disp=c(0,1))
+  run.bio.sims <- lapply(1:nrow(bio.prm.df),
+                         function(x) abund.vs.ce(emig.base=bio.prm.df[x,1],
+                                                 pref.disp=bio.prm.df[x,2]))
+}
+if(!exists("run.bio.sims.wpref")) {
+
+  bio.prm.df <- expand.grid(emig.base=c(0.05,0.1,0.15,0.2,0.25),
+                            pref.disp=c(0,1))
+  run.bio.sims.wpref <- lapply(1:nrow(bio.prm.df),
+                         function(x) abund.vs.ce(emig.base=bio.prm.df[x,1],
+                                                 pref.disp=bio.prm.df[x,2],
+                                                 add.r.pref=TRUE))
+}
+
+### Compare core-edge biomass
+comp.ce.biom <- function(bio.list=run.bio.sims) {
+
+  t1 <- bio.list[[1]]
+  par(mai=c(0.8,0.8,0.5,1.5), family="HersheySans")
+  pu <- par("usr")
+  plot(1:nrow(t1), type="n", las=1, ylim=c(0.5,1),
+       xlab="Habitat quality difference between the core and the edge",
+       ylab="Proportion of total population at equilibrium compared to no-dispersal scenario")
+  abline(h=1)
+  colv <- tim.colors(length(bio.list))
+
+  add.lines <- function(tnum) {
+
+    dnow <- bio.list[[tnum]]
+    colpal <- colorRampPalette(c("grey",colv[tnum]))
+    colnow <- (colpal(4))
+    dmm <- sapply(2,
+                  function(x) lines(dnow[,x]/sum(K),
+                                    col=colnow[x+1]))
+  }
+
+  dmm <- lapply(1:10, add.lines)
+
+
+  legend.ltb.2(pu[2],pu[4],legend=apply(bio.prm.df,1,paste, collapse=" -- "),
+         xpd=NA, lty=1, col=colv, bty="n")
+
+}
