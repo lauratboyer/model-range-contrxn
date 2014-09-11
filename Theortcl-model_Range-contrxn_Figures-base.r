@@ -4,11 +4,11 @@
 ## -------------------------------------------------------
 ## Author: Laura Tremblay-Boyer (l.boyer@fisheries.ubc.ca)
 ## Written on: June 16, 2014
-## Time-stamp: <2014-07-23 16:18:01 Laura>
+## Time-stamp: <2014-09-04 16:08:21 Laura>
 ########################################################
 # Define general labels and such
 
-emig.lab <- c("No dispersal", "Even emigration", "Preferential emigration")
+emig.lab <- c("None", "Uniform", "Preferential")
 names(emig.lab) <- c("base","emig","wpref")
 ftype.lab <- c("Even F throughout the range","Higher F in core", "Higher F in edges")
 names(ftype.lab) <- c("even","core","edge")
@@ -192,7 +192,8 @@ map.abund <- function(popmat=envpop$mat, K.thresh=0.05, global.scale=TRUE) {
 
 ########################################################################
 ########################################################################
-plot.cell.layout <- function( add.info=TRUE) {
+plot.cell.layout <- function(add.info=TRUE, use.transp=FALSE) {
+
   #emat=envpop$mat
     check.dev.size(5,5)
     par(mai=rep(0.3,4), family="HersheySans")
@@ -202,8 +203,10 @@ plot.cell.layout <- function( add.info=TRUE) {
 #    image(1:nrow(emat),1:ncol(emat),
 #          im.mat, col=c(col.mat),asp=1,axes=FALSE,
 #          xlab="", ylab="")
+    col.now <- col.mat
+    if(use.transp) col.now <- col.mat.transp
  image(1:5,1:5,
-          im.mat, col=col.mat,asp=1,axes=FALSE,
+          im.mat, col=col.now,asp=1,axes=FALSE,
           xlab="", ylab="")
     box()
     if(add.info) {
@@ -225,21 +228,94 @@ plot.cell.layout <- function( add.info=TRUE) {
 
 ########################################################################
 ########################################################################
-plot.tm.aor <- function(popmat=envpop$mat, pres.thresh=0, add=FALSE, ...) {
+plot.tm.aor <- function(popmat=envpop$mat, pres.thresh=0, add=FALSE,
+                        colv="black", pchv=19, ...) {
 
     abund.ts <- apply(popmat, 3, sum)
     area.ts <- apply((floor(popmat))>(pres.thresh*K), 3, sum)
 
+
     if(!add) {
-        plot(abund.ts, area.ts, las=1, xlab="", ylab="", xaxt="n",pch=19, ...)
+        plot(abund.ts, area.ts, las=1, xlab="", ylab="", xaxt="n",
+             col=colv, pch=pchv, ...)
 
         axis(1, labels=NA)
-    }else{        points(abund.ts, area.ts, pch=20, ...) }
+    }else{        points(abund.ts, area.ts, col=colv, pch=pchv, ...) }
 
+    ## add 1:1 line
+    #sl <- max(area.ts)/max(abund.ts)
+    #abline(0, sl)
+    #points(abund.ts, sl*abund.ts)
 
     invisible(list(abund=abund.ts, area=area.ts))
 }
 
+########################################################################
+########################################################################
+calc.aor.metric <- function(popmat=envpop$mat, pres.thresh=0.05, add=FALSE, ...) {
+
+    abund.ts <- apply(popmat, 3, sum)
+    area.ts <- apply((floor(popmat))>(pres.thresh*K), 3, sum)
+
+    ## get 1:1 line
+    sl <- max(area.ts)/max(abund.ts)
+    diff <- sum(area.ts - sl*abund.ts)
+    sign <- ifelse(diff < 0, -1, 1)
+
+    s1 <- sign*1/log(diff) # metric -- retain sign but log to diminish differences
+}
+
+bp.aor.metric <- function() {
+
+
+  metr.mat <- cbind(sapply(aor.emig, calc.aor.metric),
+                    sapply(aor.wpref, calc.aor.metric),
+                    sapply(aor.whighpref, calc.aor.metric))
+  metr.mat <- metr.mat/metr.mat[1] # standardize to no AOR
+
+  check.dev.size(5.6,6.25)
+  par(mfrow=c(1,1), mai=c(0.5,1,0.25,1.2), family="HersheySans")
+  layout(rbind(1,2),height=c(1.5,1))
+
+  # top panel raw data for AOR
+  pthresh <- 0.05
+  plot.tm.aor(popmat=aor.emig$noss, pres.thresh=pthresh, col=NA)
+  mtext("Range size in # of squares occupied",side=2,line=3)
+  mtext("Total population abundance",side=1, line=1)
+
+  abline(0, 100/1000000, col="grey")
+  bpal <- c("grey",col2transp(brewer.pal(3, "YlGnBu")))
+
+  lapply(1:4, function(x) plot.tm.aor(aor.emig[[x]], pres.thresh=pthresh, add=TRUE,
+                                           colv=bpal[x]))
+  lapply(1:4, function(x) plot.tm.aor(aor.wpref[[x]], pres.thresh=pthresh,
+                                            add=TRUE, pchv=3, colv=bpal[x]))
+  lapply(1:4, function(x) plot.tm.aor(aor.whighpref[[x]], pres.thresh=pthresh,
+                                                add=TRUE, pchv=4, colv=bpal[x]))
+
+  pu <- par("usr")
+  legend.ltb.2(1.025*pu[2], pu[4],
+               c("None","Slight","Medium","Strong", NA,
+                 "Uniform", "Weak", "Strong"),
+         col=c(bpal,NA,rep(bpal[3],3)), bty="n", xpd=NA,
+               pch=c(rep(15,5),20,3,4), pt.cex=2)
+
+  # bottom panel AOR metric
+  par(mai=c(0.5,1,0.1,0.2))
+  bpal <- col2transp(brewer.pal(3, "YlGnBu"),1)
+  bp <- barplot(metr.mat, beside=TRUE, col=c("grey",bpal),
+          border=NA, las=1, xlim=c(0,9),ylab="AOR strength metric",
+          space=c(0.5,rep(0.2,3), 1.5, rep(0.2, 3), 1.5, rep(0.2,3)), width=0.5)
+  abline(h=0)
+  xpos <- apply(bp, 2, mean)
+  text(xpos, -0.1, c("Uniform",
+                     "Weak preferential",
+                     "Strong preferential"), xpd=NA, cex=0.8)
+
+
+  dev.copy2pdf(file="tm-range-contrxn_aor-scenario_metric-bp.pdf")
+
+}
 ###################################################
 ###################################################
 plot.fish.biom <- function(pmat=envpop$mat) {
@@ -250,28 +326,27 @@ plot.fish.biom <- function(pmat=envpop$mat) {
 ###################################################
 ###################################################
 ## Plot scenario time-series (3) (i.e. top panel of emat)
-plot.scen.ts <- function(scen.list=list(ee.lowF, ce.lowF), show.nk=FALSE) {
+plot.scen.ts <- function(scen.list=ee.lowF, show.nk=FALSE) {
 
     Know <- attr(scen.list, "K")
     rgval <- attr(scen.list, "rgval")
     grid.width <- attr(scen.list, "grid.width")
     hab.struct <- ifelse(rgval[1]!=rgval[2], "Core-edge", "Even")
-print(hab.struct)
+
     plines <- function(wtype, xl, F.type) {
 
       # scenarios to show in plot:
       scen.sub <- scen.list[[F.type]]
 
-      emat <- scen.sub[[wtype]]
+      emat <- scen.sub[[wtype]]$mat
       ymax <- ifelse(show.nk, 1.25, max(Know))
       plot(1:10, type="n", xlim=xl, ylim=c(0,ymax), las=1,
            xaxt=ifelse(F.type=="edge","t","n"),
              yaxt=ifelse(wtype=="base", "t", "n"))
-        abline(h=K, col=c(col.mat.transp), lwd=0.5)
+      abline(h=K*r.growth/r.mrt, col=c(col.mat.transp), lwd=0.5)
 
         cellv <- 1:ncell
         mi <- arrayInd(cellv, .dim=c(grid.width, grid.width))
-        abline(v=300, col="grey", lty=3)
         dmm <- sapply(cellv, function(rr) lines(emat[mi[rr,1],
                                                      mi[rr,2],]/ifelse(show.nk,K[rr],1),
                                                 lwd=2, col=col.mat.transp[rr]))
@@ -311,5 +386,124 @@ print(hab.struct)
     dev.copy2pdf(file=fname)
 }
 
+# plot time-series of population biomass comparing two set-ups of environment differentiation
+plot.scen.ts.comp2 <- function(scen.list=ee.lowF,
+                               scen.list.2=ce.lowF, show.nk=FALSE) {
+
+    ts.fstart <- attr(scen.list, "fishing.start")
+    grid.width <- attr(scen.list, "grid.width")
+
+    plines <- function(scen.now, wtype, xl) {
+
+      F.type <- "even"
+      scen.sub <- scen.now[[F.type]]
+      Know <- attr(scen.now, "K")
+      rgval <- attr(scen.now, "rgval")
+      emat <- scen.sub[[wtype]]$mat
+
+      ymax <- ifelse(show.nk, 1.25, 1.25*max(Know))
+      plot(1:10, type="n", xlim=xl, ylim=c(0,ymax), las=1,
+           xaxt=ifelse(counter==2,"t","n"),
+             yaxt=ifelse(wtype=="base", "t", "n")
+           )
 
 
+
+      pu <- par("usr")
+      polygon(c(pu[1],ts.fstart, ts.fstart,pu[1]), pu[c(3,3,4,4)],
+              border=NA, col=col2transp("cornsilk3"))
+        abline(h=Know[1]*rgval/r.mrt[1], lwd=1,
+               col=c("tomato","dodgerblue3"))
+      abline(h=0,col="grey") # horizontal line at n=0
+        cellv <- 1:ncell
+        mi <- arrayInd(cellv, .dim=c(grid.width, grid.width))
+
+        dmm <- sapply(cellv, function(rr) lines(emat[mi[rr,1],
+                                                     mi[rr,2],]/ifelse(show.nk,K[rr],1),
+                                                lwd=2, col=col.mat.transp[rr]))
+    pu <- par("usr")
+    lh <- strheight("I", vfont=c("sans serif","plain")) # line height for labels
+        mtext(toupper(emig.lab[wtype]),adj=1,col="royalblue")
+      if(wtype=="base") mtext(toupper("Dispersal type:"),adj=0,col="grey30")
+
+      if(wtype=="base" & counter ==1) mtext("Low difference in habitat quality",adj=0,line=2,cex=1.5)
+      if(wtype=="base" & counter ==2) mtext("High difference in habitat quality",adj=0,line=2,cex=1.5)
+      text(ts.fstart,pu[4]-1.75*lh,"F=0",col="white",cex=1.5,pos=2,vfont=c("sans serif", "bold"))
+
+#      if(wtype=="base") text(pu[1],pu[4] + 1*lh,
+#           ftype.lab[F.type],xpd=NA, pos=4, cex=1.5,
+#           vfont=c("sans serif", "bold"), offset=0, col="royalblue3")
+    }
+
+    check.dev.size(9.3, 7.5)
+    par(mfrow=c(2,3), mai=c(0.1,0.1,0.75,0.1), omi=c(0.65,0.75,0.15,0.1), family="HersheySans")
+
+    counter <- 1
+      sapply(c("base","emig","wpref"),
+           function(ft) plines(scen.list, ft, c(0, ts.max)))
+
+    counter <- 2
+    sapply(c("base","emig","wpref"),
+           function(ft) plines(scen.list.2, ft, c(0, ts.max)))
+
+    mtext("Population size (# of individuals)", side=2, outer=TRUE, line=4)
+    mtext("Timesteps", side=1, outer=TRUE, line=3)
+
+
+    # General plot label
+    px <- grconvertX(0, from="nic")
+    py <- grconvertY(0.95, from="ndc")
+
+#    text(px, py, sprintf("%s habitat structure", "lala"),
+#         pos=4, cex=2.25, xpd=NA)
+
+    fname <- "tm-range-contrxn_ts-3-scen_FMx3_two-envir-scenarios.pdf"
+    dev.copy2pdf(file=fname)
+}
+
+########################################
+## Proportion of population in core cells
+prop.in.core <- function() {
+
+  b4fish <- 250 # time-steps at equilibrium
+  aftfish <- 900
+  cc <- calc.core.size(100)$core.cells
+
+  calc.dprop <- function(arr.now) {
+
+  coreb4 <- sum(arr.now[,,b4fish][cc])/length(b4fish)
+  allb4 <-  sum(arr.now[,,b4fish])/length(b4fish)
+
+  coreaf <- sum(arr.now[,,aftfish][cc])/length(aftfish)
+  allaf <-  sum(arr.now[,,aftfish])/length(aftfish)
+
+  c(coreb4/allb4, coreaf/allaf) # difference in proportion of biomass in core cells
+}
+
+  r.emig <- sapply(aor.emig, calc.dprop)
+  r.wpref <- sapply(aor.wpref, calc.dprop)
+  r.whpref <- sapply(aor.whighpref, calc.dprop)
+  mat <- cbind(r.emig, r.wpref, r.whpref)
+
+  par(mfrow=c(1,1),mai=c(0.8,0.8,0.8,2),family="HersheySans")
+  plot(1:10,type="n",ylim=c(0,11.5),xlim=c(0,1), axes=FALSE, ann=FALSE)
+  abline(v=seq(0,0.8,by=0.2),col="cornsilk3")
+  bwidth <- 0.3
+  bp <- barplot(mat, beside=TRUE, border=NA,
+          col=c("limegreen","tomato"), las=1,
+          width=bwidth, space=c(rep(c(1, 0),4), 2,0,rep(c(1, 0),3),
+                        2,0,rep(c(1,0),3)),
+                horiz=TRUE, add=TRUE)
+  text(1, bp[8], "Uniform dispersal",xpd=NA,pos=4)
+  text(1, bp[16], "Weak preferential",xpd=NA,
+       pos=4)
+  text(1, bp[15], "dispersal",xpd=NA,
+       pos=4)
+  text(1, bp[24], "Strong preferential",xpd=NA,
+       pos=4)
+  text(1, bp[23], "dispersal",xpd=NA,
+       pos=4)
+  segments(1.01,bp[24]+bwidth/2,1.01,bp[17],xpd=NA,lwd=0.5)
+  segments(1.01,bp[16]+bwidth/2,1.01,bp[9],xpd=NA,lwd=0.5)
+  segments(1.01,bp[8]+bwidth/2,1.01,bp[1],xpd=NA,lwd=0.5)
+}

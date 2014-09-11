@@ -33,10 +33,10 @@ NumericMatrix popmatnow(nr,nc); //empty matrix
 for (int cc = 0; cc < nc; cc++) {
 for (int rr = 0; rr < nr; rr++) {
 double Ntm1 = inipopmat[cc*nc+rr];
-// calculate cell abundance before fishing, emigration occurs before repr
+// start with cell abundance after fishing, individuals move, then reproduction occurs
 double Ntnow = Ntm1 - emigv[cc*nc+rr]*Ntm1 + immigv[cc*nc+rr];
 double Ntnowrep = Ntnow + rval_growth[cc*nc+rr]*Ntnow - rval_mrt[cc*nc+rr]*Ntnow*Ntnow/Kval[cc*nc+rr];
-// now remove proportion based on F
+// store N at t+1
 popmatnow[cc*nc+rr] = Ntnowrep;
 }
 }
@@ -54,6 +54,7 @@ cell.dyn <- function(pref.disp=0, add.r=FALSE, use.home=FALSE, emig.before=TRUE)
         # first step: fish and chips
         # using fishing mortality as defined in current timestep
         fishmat <- matnow*(1-F.array[,,ts])
+        envpop$catch.mat[,,ts] <- matnow*F.array[,,ts] # store catch at this time-step
         matnow <- fishmat
 
         # then calculate proportion of each cell that emigrates given
@@ -73,7 +74,6 @@ cell.dyn <- function(pref.disp=0, add.r=FALSE, use.home=FALSE, emig.before=TRUE)
         # for each cell, N_t-1 * prop.emig
         #emig.by.cell <- c(envpop$mat[,,ts-1]*prop.emig)
         emig.by.cell <- c(matnow*prop.emig)
-
 
         # assign to each neighbour by multiplying on neighbour mat
         # and spreading evenly over neighbours by dividing by # neighbours
