@@ -4,7 +4,7 @@
 ## -------------------------------------------------------
 ## Author: Laura Tremblay-Boyer (l.boyer@fisheries.ubc.ca)
 ## Written on: June  3, 2014
-## Time-stamp: <2014-07-31 20:30:10 Laura>
+## Time-stamp: <2014-10-29 10:43:23 Laura>
 require(colorspace); require(RColorBrewer)
 require(Rcpp)
 source("Theortcl-model_Range-contrxn_CellLayout-setup.r")
@@ -14,7 +14,7 @@ tm.spatial.dyn <- function(emig.base=0.1, emig.max=emig.base,
                            K.core=10000, K.edge=K.core,
                            fish.fact=0, fish.fact.edge=fish.fact,
                            fishing.start = 500,
-                           pref.disp=0, add.r.pref=FALSE,
+                           pref.disp=0, add.r.pref=TRUE,
                            grid.width = 5) {
 
     ## Model parameters
@@ -26,12 +26,11 @@ tm.spatial.dyn <- function(emig.base=0.1, emig.max=emig.base,
     r.mrt <<- r.growth # mortality rate
 
     Ni <- 100 # starting population initial
-    set.seed(99)
 
     ## get environment layout
     hab.setup.funk <- "calc.core.size" # or calc.core.size for a central core
-    core.layout <<- do.call(hab.setup.funk, list(ncell))
-
+    core.layout.old <- do.call(hab.setup.funk, list(ncell))
+    core.layout <<- make.mvt.layout(grid.width, r.growth.core, r.growth.edge)
 
     ### Set up habitat
     habtype <<- "core" # should be 'core','even', 'random'
@@ -39,7 +38,8 @@ tm.spatial.dyn <- function(emig.base=0.1, emig.max=emig.base,
     if(habtype=="core") {
     K <<- rep(K.core, ncell)
     #[core.layout$edge.cells] <- K.edge
-    r.growth[core.layout$edge.cells] <<- r.growth.edge
+    r.growth[core.layout$edge.cells] <<- core.layout$edge.r.vals
+    r.growth[core.layout$edge.cells] <<- core.layout$edge.r.vals
     #r.mrt <<- r.growth # mortality rate
     #r.mrt[core.layout$edge.cells] <- r.growth[core.layout$edge.cells]
 }
@@ -205,7 +205,6 @@ ibc.nkratio <<- function(ts.now, nmat, Kcell=K, pref.disp=1, add.r=FALSE,
   # ... if r counts in preferred dispersal, add r in product instead
   if(add.r) nkmat <- (r.growth*exp(1-nmat/Kcell))[c(neighbycell)]
 
-
 #  if(add.r) nkmat <- (r.growth*nkmat)
 
   # set minimum dispersal rate between cells:
@@ -324,6 +323,7 @@ ibc.nkratio.wnatal <- function(nmat, Kcell=K, pref.disp=1, add.r=FALSE,
     envpop$run.info <- ffunk
 
     cell.dyn(pref.disp=pref.disp, add.r=add.r.pref)
+    invisible(envpop)
 }
 
 
@@ -332,7 +332,11 @@ if(!exists("everything.in")) {
   source("Theortcl-model_Range-contrxn_Figures-base.r")
   source("Theortcl-model_Range-contrxn_Scenarios.r")
   source("Theortcl-model_Range-contrxn_BiomassIndic.r")
+  source("Theortcl-model_Multivar-normal-habitat.r")
+  source("Theortcl-model_Range-contrxn_Layout.r")
   everything.in <- TRUE
 }
+
+
 
 

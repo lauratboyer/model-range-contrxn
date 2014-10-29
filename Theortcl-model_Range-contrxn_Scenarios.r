@@ -3,8 +3,11 @@
 ## -------------------------------------------------------
 ## Author: Laura Tremblay-Boyer (l.boyer@fisheries.ubc.ca)
 ## Written on: July 14, 2014
-## Time-stamp: <2014-09-10 17:06:06 Laura>
+## Time-stamp: <2014-10-29 10:53:05 Laura>
 
+########################################################
+run.df.scen <- FALSE # set to TRUE to run basic scenarios
+aor.scenario.rerun <- FALSE # set to TRUE to run AOR scenarios
 ########################################################
 scenario.run <- function(rgcore = 0.1, rgedge=rgcore, Fval=0.5) {
 
@@ -67,13 +70,14 @@ scenario.run <- function(rgcore = 0.1, rgedge=rgcore, Fval=0.5) {
 
 ## For each scenario calculate the different in biomass
 ## expected compared to no dispersal version
-
+if(run.df.scen) {
 if(!exists("ee.lowF")) ee.lowF <- scenario.run()
 #if(!exists("ee.highF")) ee.highF <- scenario.run(Fval=0.8)
 if(!exists("ce.lowF")) ce.lowF <- scenario.run(rgedge=0.05)
 if(!exists("ce.low.lowF")) ce.low.lowF <- scenario.run(rgedge=0.085)
 if(!exists("ce.high.lowF")) ce.high.lowF <- scenario.run(rgedge=0.02)
 #if(!exists("ce.highF")) ce.highF <- scenario.run(rgedge=0.1, Fval=0.8)
+}
 
 comp.scen.ec <- function(sim.list=ee.lowF, scen="emig",
                          calc.type="absolute") { #scen is emig or wpref
@@ -486,6 +490,7 @@ srcsinkX2.plot <- function(scen.list=srcsink.list, wvar="core") {
   dev.copy2pdf(file="tm-range-dyn_srcsink-surface.pdf")
 }
 
+if(run.df.scen) {
 if(!exists("srcsink.list")) {
   srcsink.scen.low <- srcsinkX2(0.1, 0.1)
   srcsink.scen.med <- srcsinkX2(0.1, 0.05)
@@ -493,11 +498,12 @@ if(!exists("srcsink.list")) {
   srcsink.list <- list(low=srcsink.scen.low, med=srcsink.scen.med,
                      high=srcsink.scen.high)
 }
+}
 
 ######################################################
 ######################################################
 
-aor.scenario.rerun <- TRUE
+
 if(aor.scenario.rerun) {
 
   require(parallel)
