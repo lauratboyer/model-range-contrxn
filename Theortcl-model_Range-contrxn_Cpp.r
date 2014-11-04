@@ -42,8 +42,19 @@ popmatnow[cc*nc+rr] = Ntnowrep;
 }
 return popmatnow; }')
 
+new.cell.dyn <- function() {
 
-cell.dyn <- function(pref.disp=0, add.r=FALSE, use.home=FALSE, emig.before=TRUE) { # Nt as a function of N_t-1
+  fmat <- F.array
+  attr(fmat,"dim") <- c(ncell, ts.max)
+  pmat <- alldyn(Ni, ncell, numts=2,
+                 r.growth, r.mrt, K,
+                 emig.max, fmat, add_r=FALSE, pref_val=1,
+                 neighbycell)
+
+}
+
+cell.dyn <- function(pref.disp=0, add.r=FALSE,
+                     use.home=FALSE, emig.before=TRUE) { # Nt as a function of N_t-1
 
     # Reset population matrix
     envpop$mat[,,2:ts.max] <<- NA
@@ -64,7 +75,6 @@ cell.dyn <- function(pref.disp=0, add.r=FALSE, use.home=FALSE, emig.before=TRUE)
         if(use.home){
             pi <- ibc.nkratio.wnatal(ts, matnow, pref.disp=pref.disp, add.r=add.r)
             prop.emig <- apply(pi, 1, sum) # emigration sum of relative proportions that go to neighbours
-
         }
 
         # store it
@@ -85,8 +95,11 @@ cell.dyn <- function(pref.disp=0, add.r=FALSE, use.home=FALSE, emig.before=TRUE)
         envpop$emig.store[ts,] <- emig.by.cell
 
         if(emig.before) {
+
         matupd <- updcellcpp_eb4r(matnow, r.growth, r.mrt, K,
-                             prop.emig, immig.by.cell, c(F.array[,,ts]))
+                             prop.emig, immig.by.cell,
+                                  c(F.array[,,ts]))
+
         }else{
         matupd <- updcellcpp(matnow, r.growth, r.mrt, K,
                              prop.emig, immig.by.cell, c(F.array[,,ts]))

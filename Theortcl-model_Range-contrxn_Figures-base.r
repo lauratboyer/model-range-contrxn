@@ -4,7 +4,7 @@
 ## -------------------------------------------------------
 ## Author: Laura Tremblay-Boyer (l.boyer@fisheries.ubc.ca)
 ## Written on: June 16, 2014
-## Time-stamp: <2014-09-04 16:08:21 Laura>
+## Time-stamp: <2014-10-29 11:02:45 Laura>
 ########################################################
 # Define general labels and such
 
@@ -43,6 +43,8 @@ format.run.info <- function(ri=envpop$run.info) {
 ## with zoom on last 50 timesteps, map of cell layout + K,
 ## and option to plot ratio of N/K
 plot.emat <- function(emat=envpop$mat, show.nk=FALSE) {
+
+  if(class(emat)=="environment") emat <- emat$mat
 
     plines <- function(xl) {
 

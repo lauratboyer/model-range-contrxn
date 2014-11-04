@@ -4,10 +4,9 @@
 ## -------------------------------------------------------
 ## Author: Laura Tremblay-Boyer (l.boyer@fisheries.ubc.ca)
 ## Written on: June  3, 2014
-## Time-stamp: <2014-10-29 10:43:23 Laura>
+## Time-stamp: <2014-11-03 14:48:35 Laura>
 require(colorspace); require(RColorBrewer)
 require(Rcpp)
-source("Theortcl-model_Range-contrxn_CellLayout-setup.r")
 
 tm.spatial.dyn <- function(emig.base=0.1, emig.max=emig.base,
                            r.growth.core=0.1, r.growth.edge=r.growth.core,
@@ -16,7 +15,8 @@ tm.spatial.dyn <- function(emig.base=0.1, emig.max=emig.base,
                            fishing.start = 500,
                            pref.disp=0, add.r.pref=TRUE,
                            grid.width = 5) {
-
+message("Setting seed!")
+set.seed(999)
     ## Model parameters
     grid.width <<- grid.width
     ncell <<- grid.width^2 ## Number of cells
@@ -25,7 +25,7 @@ tm.spatial.dyn <- function(emig.base=0.1, emig.max=emig.base,
     r.growth <<- rep(r.growth.core, ncell) # growth rate
     r.mrt <<- r.growth # mortality rate
 
-    Ni <- 100 # starting population initial
+    Ni <<- 100 # starting population initial
 
     ## get environment layout
     hab.setup.funk <- "calc.core.size" # or calc.core.size for a central core
@@ -95,8 +95,8 @@ col.mat <<- matrix(NA, nrow=grid.width)
 ###################################################
 # DEFINE NEIGHBOURS BY CELL
  cell.index <<- data.frame(index=1:ncell,
-                         xx=rep(1:grid.width,each=grid.width),
-                         yy=1:grid.width)
+                           xx=1:grid.width,
+                           yy=rep(1:grid.width,each=grid.width))
 boundary.opt <- "periodic"
 if(boundary.opt == "periodic") {
 
@@ -235,14 +235,15 @@ ibc.nkratio <<- function(ts.now, nmat, Kcell=K, pref.disp=1, add.r=FALSE,
   # remove dispersal from one cell at random, with higher probability for poor cells
   add.random <- FALSE
   if(add.random) {
-  numcell0 <- 1
-  sample.1 <- function(x) {
-    ss <- sample(1:length(x), numcell0)
-  }
-  cell.0.disp <- apply(nkmat, 1, sample.1)
-  cell.ind.0 <- arrayInd.rev(rep(1:nrow(nkmat),each=numcell0), c(cell.0.disp), .dim=dim(nkmat))
-  nkmat[cell.ind.0] <- 0
+    numcell0 <- 1
+      sample.1 <- function(x) {
+        ss <- sample(1:length(x), numcell0)
+        }
+    cell.0.disp <- apply(nkmat, 1, sample.1)
+    cell.ind.0 <- arrayInd.rev(rep(1:nrow(nkmat),each=numcell0), c(cell.0.disp), .dim=dim(nkmat))
+    nkmat[cell.ind.0] <- 0
 }
+  print(pref.disp); print(add.r); stop()
     # standardize to send neighbours to cell based on
     # relative pref.disp weighted proportion
     # (neighbours in columns)
@@ -330,10 +331,12 @@ ibc.nkratio.wnatal <- function(nmat, Kcell=K, pref.disp=1, add.r=FALSE,
 if(!exists("everything.in")) {
   source("Theortcl-model_Range-contrxn_Cpp.r")
   source("Theortcl-model_Range-contrxn_Figures-base.r")
-  source("Theortcl-model_Range-contrxn_Scenarios.r")
-  source("Theortcl-model_Range-contrxn_BiomassIndic.r")
+
+
   source("Theortcl-model_Multivar-normal-habitat.r")
-  source("Theortcl-model_Range-contrxn_Layout.r")
+  source("Theortcl-model_Range-contrxn_CellLayout-setup.r")
+#  source("Theortcl-model_Range-contrxn_Scenarios.r")
+#  source("Theortcl-model_Range-contrxn_BiomassIndic.r")
   everything.in <- TRUE
 }
 
