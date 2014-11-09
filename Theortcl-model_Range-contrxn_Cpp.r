@@ -34,21 +34,22 @@ for (int cc = 0; cc < nc; cc++) {
 for (int rr = 0; rr < nr; rr++) {
 double Ntm1 = inipopmat[cc*nc+rr];
 // start with cell abundance after fishing, individuals move, then reproduction occurs
-double Ntnow = Ntm1 - emigv[cc*nc+rr]*Ntm1 + immigv[cc*nc+rr];
-double Ntnowrep = Ntnow + rval_growth[cc*nc+rr]*Ntnow - rval_mrt[cc*nc+rr]*Ntnow*Ntnow/Kval[cc*nc+rr];
+double Ntnow = Ntm1 - emigv[cc*nc+rr] + immigv[cc*nc+rr];
+double Ntnowrep = Ntnow + rval_growth[cc*nc+rr]*Ntnow -
+rval_mrt[cc*nc+rr]*Ntnow*Ntnow/Kval[cc*nc+rr];
 // store N at t+1
 popmatnow[cc*nc+rr] = Ntnowrep;
 }
 }
 return popmatnow; }')
 
-new.cell.dyn <- function() {
+new.cell.dyn <- function(pref.disp=0, add.r.pref=TRUE) {
 
   fmat <- F.array
   attr(fmat,"dim") <- c(ncell, ts.max)
-  pmat <- alldyn(Ni, ncell, numts=2,
+  pmat <- alldyn(Ni, ncell, numts=ts.max,
                  r.growth, r.mrt, K,
-                 emig.max, fmat, add_r=FALSE, pref_val=1,
+                 emig.max, fmat, add_r=add.r.pref, pref_val=pref.disp,
                  neighbycell)
 
 }
@@ -62,14 +63,9 @@ cell.dyn <- function(pref.disp=0, add.r=FALSE,
     upd.ts <- function(ts) {
 
         matnow <- envpop$mat[,,ts-1]
-        # first step: fish and chips
-        # using fishing mortality as defined in current timestep
-        fishmat <- matnow*(1-F.array[,,ts])
-        envpop$catch.mat[,,ts] <- matnow*F.array[,,ts] # store catch at this time-step
-        matnow <- fishmat
 
-        # then calculate proportion of each cell that emigrates given
-        # current, post-fishing N
+        # calculate proportion of each cell that emigrates given
+        # current N at previous time-step
         prop.emig <- calc.emig.straight(matnow)
 
         if(use.home){
@@ -91,15 +87,23 @@ cell.dyn <- function(pref.disp=0, add.r=FALSE,
         prop.immig <- ibc.nkratio(ts, matnow, pref.disp=pref.disp, add.r=add.r)
         envpop$immig.rate[,,ts] <- prop.immig
         immig.by.cell <- apply(emig.by.cell*prop.immig, 2, sum)
+
         envpop$immig.store[ts,] <- immig.by.cell
         envpop$emig.store[ts,] <- emig.by.cell
 
+        # apply fishing mortality as defined in current timestep
+        fishmat <- matnow*(1-F.array[,,ts])
+        envpop$catch.mat[,,ts] <- matnow*F.array[,,ts] # store catch at this time-step
+        matnow <- fishmat
+
         if(emig.before) {
 
-        matupd <- updcellcpp_eb4r(matnow, r.growth, r.mrt, K,
-                             prop.emig, immig.by.cell,
-                                  c(F.array[,,ts]))
 
+
+        matupd <- updcellcpp_eb4r(matnow, r.growth, r.mrt, K,
+                             emig.by.cell, immig.by.cell,
+                                  c(F.array[,,ts]))
+if(ts == 500) fishdebug <<- prop.emig * c(matnow)
         }else{
         matupd <- updcellcpp(matnow, r.growth, r.mrt, K,
                              prop.emig, immig.by.cell, c(F.array[,,ts]))

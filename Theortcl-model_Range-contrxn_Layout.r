@@ -4,7 +4,7 @@
 ## -------------------------------------------------------
 ## Author: Laura Tremblay-Boyer (l.boyer@fisheries.ubc.ca)
 ## Written on: June  3, 2014
-## Time-stamp: <2014-11-03 14:48:35 Laura>
+## Time-stamp: <2014-11-07 08:56:36 Laura>
 require(colorspace); require(RColorBrewer)
 require(Rcpp)
 
@@ -17,6 +17,7 @@ tm.spatial.dyn <- function(emig.base=0.1, emig.max=emig.base,
                            grid.width = 5) {
 message("Setting seed!")
 set.seed(999)
+
     ## Model parameters
     grid.width <<- grid.width
     ncell <<- grid.width^2 ## Number of cells
@@ -29,7 +30,7 @@ set.seed(999)
 
     ## get environment layout
     hab.setup.funk <- "calc.core.size" # or calc.core.size for a central core
-    core.layout.old <- do.call(hab.setup.funk, list(ncell))
+    core.layout.old <<- do.call(hab.setup.funk, list(ncell))
     core.layout <<- make.mvt.layout(grid.width, r.growth.core, r.growth.edge)
 
     ### Set up habitat
@@ -37,8 +38,9 @@ set.seed(999)
     if(habtype=="random") K <- rpois(ncell, K.core)
     if(habtype=="core") {
     K <<- rep(K.core, ncell)
-    #[core.layout$edge.cells] <- K.edge
-    r.growth[core.layout$edge.cells] <<- core.layout$edge.r.vals
+
+    #r.growth[core.layout$edge.cells] <<- r.growth.edge
+    r.growth[core.layout$core.cells] <<- core.layout$core.r.vals
     r.growth[core.layout$edge.cells] <<- core.layout$edge.r.vals
     #r.mrt <<- r.growth # mortality rate
     #r.mrt[core.layout$edge.cells] <- r.growth[core.layout$edge.cells]
@@ -89,9 +91,6 @@ col.mat <<- matrix(NA, nrow=grid.width)
     envpop$nkmat <- matrix(NA, nrow=ts.max, ncol=ncell)
     envpop$immig.rate <- array(NA, dim=c(ncell, ncell, ts.max))
 
-
-
-
 ###################################################
 # DEFINE NEIGHBOURS BY CELL
  cell.index <<- data.frame(index=1:ncell,
@@ -134,7 +133,7 @@ pb.neighbour <- function(wi, n=3) {
 
     # neighbours of each cell (base cells are in row)
     # i.e. neighbours of cell i are in neighbour.mat[i,]
-    neighbour.mat <- t(sapply(1:ncell, function(x) pb.neighbour(x, grid.width)))
+    neighbour.mat <<- t(sapply(1:ncell, function(x) pb.neighbour(x, grid.width)))
     num.neigh <- apply(neighbour.mat, 1, sum)
     neighbycell <<- t(apply(neighbour.mat==1, 1, which))
 
@@ -144,7 +143,7 @@ pb.neighbour <- function(wi, n=3) {
     dmat[dmat==0] <- 99 # so that the cell itself isn't counted as a neighbour
     nbycell <- apply(dmat<1.5, 1, which) # neighbours of each cell (base cells are in row)
     num.neigh <- sapply(nbycell, length)
-    neighbour.mat <- sapply(1:nrow(dmat), function(x) as.numeric(dmat[x,]<1.5))
+    neighbour.mat <<- sapply(1:nrow(dmat), function(x) as.numeric(dmat[x,]<1.5))
 }
 
 ######################################################
@@ -200,32 +199,27 @@ ibc.nkratio <<- function(ts.now, nmat, Kcell=K, pref.disp=1, add.r=FALSE,
   # take 1 - N/K ratio for each neighbour -- nkmat becomes a vector
   # of the same length as object neighbycell
   nkmat <- exp((1-nmat/Kcell))[c(neighbycell)]
-#  nkmat <- (1-nmat/Kcell)[c(neighbycell)]
 
   # ... if r counts in preferred dispersal, add r in product instead
   if(add.r) nkmat <- (r.growth*exp(1-nmat/Kcell))[c(neighbycell)]
 
-#  if(add.r) nkmat <- (r.growth*nkmat)
-
   # set minimum dispersal rate between cells:
   # ** note that this results in a sharp change once edge cells reach
   # ** x% of their effective carrying capacity
-# if(any(nkmat<(min(r.growth)*emig.base))) {
+  # if(any(nkmat<(min(r.growth)*emig.base))) {
   #  nkmat[nkmat<(min(r.growth)*emig.base)] <- min(r.growth)*emig.base # this allows a minimum of flow between cells
-#   nkmat[nkmat<(min(r.growth)*0.05)] <- min(r.growth)*0.05 # this allows a minimum of flow between cells
- #   print(ts.now)}
-    # and stabilises population dynamics
-    # but probably not the best way to do this
+  #  nkmat[nkmat<(min(r.growth)*0.05)] <- min(r.growth)*0.05 # this allows a minimum of flow between cells
+  #  print(ts.now)}
+  # and stabilises population dynamics
+  # but probably not the best way to do this
   #envpop$nkmat[ts.now,] <- nkmat
 
+  # switch back to matrix
+  dim(nkmat) <- dim(neighbycell)
 
-    dim(nkmat) <- dim(neighbycell) # switch back to matrix
-
-
-
-    # if pref.disp=0, divide by identity -> no preferential dispersal
-    # if pref.disp=1, divide by 1, weighted preferential dispersal towards
-    # cells with lowest N/K ratio
+  # if pref.disp=0, divide by identity -> no preferential dispersal
+  # if pref.disp=1, divide by 1, weighted preferential dispersal towards
+  # cells with lowest N/K ratio
     if(pref.calc=="prod") {
            nkweight <- 1+(nkmat - 1)*(1-pref.disp)
            nkmat <- nkmat/nkweight # apply weight to nk matrix
@@ -242,17 +236,22 @@ ibc.nkratio <<- function(ts.now, nmat, Kcell=K, pref.disp=1, add.r=FALSE,
     cell.0.disp <- apply(nkmat, 1, sample.1)
     cell.ind.0 <- arrayInd.rev(rep(1:nrow(nkmat),each=numcell0), c(cell.0.disp), .dim=dim(nkmat))
     nkmat[cell.ind.0] <- 0
-}
-  print(pref.disp); print(add.r); stop()
-    # standardize to send neighbours to cell based on
-    # relative pref.disp weighted proportion
-    # (neighbours in columns)
+    }
 
+  # nkmat is ncell x 8 (num neighbours matrix)
+  # containing absolute attractiveness index
+  # first standardize by dividing by sum index over all cell neighbours
+  # (senders in rows, neighbours in columns)
     relprop <- nkmat/apply(nkmat, 1, sum)
+if(ts.now == 2) relprop2 <<- relprop
+  # assign these values to 0/1 ncell x ncell matrix
+  # neet to transpose both neighbour.mat and relprop
+  # so that we can fill in neighbours by cell first
+  # (not sure this is necessary but too lazy to check)
     nbmat <- t(neighbour.mat)
     nbmat[nbmat==1] <- c(t(relprop))
 
-    t(nbmat)
+    t(nbmat) # transpose back
 }
 
 # Calculate no of immigrants by cell -- including home cell in
@@ -329,12 +328,12 @@ ibc.nkratio.wnatal <- function(nmat, Kcell=K, pref.disp=1, add.r=FALSE,
 
 
 if(!exists("everything.in")) {
-  source("Theortcl-model_Range-contrxn_Cpp.r")
+
   source("Theortcl-model_Range-contrxn_Figures-base.r")
-
-
   source("Theortcl-model_Multivar-normal-habitat.r")
   source("Theortcl-model_Range-contrxn_CellLayout-setup.r")
+  source("Theortcl-model_Range-contrxn_Cpp.r")
+  source("Theortcl-model_Range-contrxn_Cpp-bloops.r")
 #  source("Theortcl-model_Range-contrxn_Scenarios.r")
 #  source("Theortcl-model_Range-contrxn_BiomassIndic.r")
   everything.in <- TRUE
