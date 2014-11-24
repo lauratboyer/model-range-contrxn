@@ -4,7 +4,7 @@
 ## -------------------------------------------------------
 ## Author: Laura Tremblay-Boyer (l.boyer@fisheries.ubc.ca)
 ## Written on: June 16, 2014
-## Time-stamp: <2014-10-29 11:02:45 Laura>
+## Time-stamp: <2014-11-10 09:13:33 Laura>
 ########################################################
 # Define general labels and such
 
@@ -61,21 +61,23 @@ plot.emat <- function(emat=envpop$mat, show.nk=FALSE) {
     check.dev.size(6.4, 7.75)
     par(mai=rep(0.3,4), omi=c(0.65,0.5,0.35,0.5), family="HersheySans")
     layout(rbind(3,c(1,2)),height=c(2,1),width=c(2,1))
-    im.mat <- 1: (nrow(emat)*ncol(emat))
-    attr(im.mat,"dim") <- dim(emat)[1:2]
+
     ymax <- max(emat, na.rm=TRUE)
     plines(c(450, 490))
 
     pmai <- par()$mai
     par(mai=c(0.3,0,0.45,0.3))
+    im.mat <- 1: (nrow(emat)*ncol(emat))
+    attr(im.mat,"dim") <- dim(emat)[1:2]
     image(1:nrow(emat),1:ncol(emat),
           im.mat, col=c(col.mat),asp=1,axes=FALSE)
+    abline(h=(1:nrow(emat))-0.5)
+    abline(v=(1:nrow(emat))-0.5)
     box()
     text(cell.index$xx, cell.index$yy, K, cex=0.5,
          col="white", vfont=c("sans serif","bold"))
     mtext("Cell layout and K", adj=0)
-    abline(h=(1:nrow(emat))-0.5)
-    abline(v=(1:nrow(emat))-0.5)
+
     par(mai=pmai)
     plines(c(0, ts.max))
     lab <- sprintf("Baseline emigration rate: %s;
@@ -508,4 +510,16 @@ prop.in.core <- function() {
   segments(1.01,bp[24]+bwidth/2,1.01,bp[17],xpd=NA,lwd=0.5)
   segments(1.01,bp[16]+bwidth/2,1.01,bp[9],xpd=NA,lwd=0.5)
   segments(1.01,bp[8]+bwidth/2,1.01,bp[1],xpd=NA,lwd=0.5)
+}
+
+draw.cell.layout <- function(sim.obj) {
+
+  gw <- sim.obj$run.info$grid.width
+  im.mat <- 1: (gw^2)
+  attr(im.mat,"dim") <- c(gw, gw)
+    image(1:gw, 1:gw,
+          im.mat, col=c(sim.obj$cell.col$op),asp=1,axes=FALSE)
+    abline(h=1:gw-0.5)
+    abline(v=1:gw-0.5)
+    box()
 }

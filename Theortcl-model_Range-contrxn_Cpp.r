@@ -43,17 +43,6 @@ popmatnow[cc*nc+rr] = Ntnowrep;
 }
 return popmatnow; }')
 
-new.cell.dyn <- function(pref.disp=0, add.r.pref=TRUE) {
-
-  fmat <- F.array
-  attr(fmat,"dim") <- c(ncell, ts.max)
-  pmat <- alldyn(Ni, ncell, numts=ts.max,
-                 r.growth, r.mrt, K,
-                 emig.max, fmat, add_r=add.r.pref, pref_val=pref.disp,
-                 neighbycell)
-
-}
-
 cell.dyn <- function(pref.disp=0, add.r=FALSE,
                      use.home=FALSE, emig.before=TRUE) { # Nt as a function of N_t-1
 

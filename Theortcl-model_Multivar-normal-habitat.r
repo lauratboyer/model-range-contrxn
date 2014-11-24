@@ -5,7 +5,7 @@
 ## -------------------------------------------------------
 ## Author: Laura Tremblay-Boyer (l.boyer@fisheries.ubc.ca)
 ## Written on: October 18, 2014
-## Time-stamp: <2014-10-18 15:31:49 Laura>
+## Time-stamp: <2014-11-10 09:16:40 Laura>
 require(mvtnorm)
 require(colorspace)
 require(data.table)
@@ -13,7 +13,7 @@ require(data.table)
 ###########################################
 ###########################################
 make.mvt.layout <- function(grid.width=5, r.growth.core=0.5, r.growth.edge=0.1,
-                            rg.cv = 0.2) {
+                            rg.cv=0.2, edge.ratio=0.5) {
 
   dx <- 8/(grid.width-1)
   xv <- seq(-4,4,by=dx)
@@ -51,9 +51,8 @@ make.mvt.layout <- function(grid.width=5, r.growth.core=0.5, r.growth.edge=0.1,
   mcomb <- m1$grid+m2$grid
   mcomb <- mcomb/max(mcomb)
 
-  core.ratio <- 0.5
   mcomb.stand <- mcomb
-  ce.thresh <- quantile(mcomb, core.ratio)
+  ce.thresh <- quantile(mcomb, edge.ratio)
   core.r.vals <- rnorm(sum(mcomb>=ce.thresh),
                 r.growth.core, sd=rg.cv*r.growth.core)
   edge.r.vals <- rnorm(sum(mcomb<ce.thresh),

@@ -2,7 +2,7 @@ tm.spadyn.rd <- function(emig.base=0.1, emig.max=emig.base,
                            r.growth.core=0.1, r.growth.edge=r.growth.core,
                            K.core=10000, K.edge=K.core,
                            fish.fact=0, fish.fact.edge=fish.fact,
-                           fishing.start = 500,
+                           rg.cv=0.1, ts.max=1000,
                            pref.disp=0, add.r.pref=TRUE,
                            grid.width = 5) {
 
@@ -10,8 +10,8 @@ tm.spadyn.rd <- function(emig.base=0.1, emig.max=emig.base,
   grid.width <<- grid.width
   ncell <<- grid.width^2 ## Number of cells
   Ni <<- 100 # starting population initial
-  ts.max <<- 1000
-
+  ts.max <<- ts.max
+  fishing.start <- floor(0.5*ts.max)
   ## Population parameters
   r.growth <<- rep(r.growth.core, ncell) # growth rate
   r.mrt <<- r.growth # mortality rate
@@ -19,7 +19,7 @@ tm.spadyn.rd <- function(emig.base=0.1, emig.max=emig.base,
   ## get environment layout and set-up habitat by cells
   core.layout <<- make.mvt.layout(grid.width,
                                   r.growth.core, r.growth.edge,
-                                  edge.ratio=0.64)
+                                  edge.ratio=0.64, rg.cv=rg.cv)
   K <<- rep(K.core, ncell)
   r.growth[core.layout$core.cells] <<- core.layout$core.r.vals
   r.growth[core.layout$edge.cells] <<- core.layout$edge.r.vals
@@ -157,6 +157,7 @@ tm.spadyn.rd <- function(emig.base=0.1, emig.max=emig.base,
   ffunk <- formals(tm.spatial.dyn)
   fcall <- sys.call()
   ffunk[names(fcall)[-1]] <- fcall[-1]
+  ffunk$ts.max <- ts.max
 
   pmat <- alldyn(Ni, ncell, numts=ts.max,
                  r.growth, r.mrt, K,
