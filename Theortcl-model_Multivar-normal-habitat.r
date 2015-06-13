@@ -5,11 +5,12 @@
 ## -------------------------------------------------------
 ## Author: Laura Tremblay-Boyer (l.boyer@fisheries.ubc.ca)
 ## Written on: October 18, 2014
-## Time-stamp: <2014-11-10 09:16:40 Laura>
+## Time-stamp: <2015-06-14 08:53:07 lauratb>
 require(mvtnorm)
 require(colorspace)
 require(data.table)
 
+## test change
 ###########################################
 ###########################################
 make.mvt.layout <- function(grid.width=5, r.growth.core=0.5, r.growth.edge=0.1,
