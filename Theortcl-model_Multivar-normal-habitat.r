@@ -5,7 +5,7 @@
 ## -------------------------------------------------------
 ## Author: Laura Tremblay-Boyer (l.boyer@fisheries.ubc.ca)
 ## Written on: October 18, 2014
-## Time-stamp: <2015-06-14 08:53:07 lauratb>
+## Time-stamp: <2015-06-14 09:46:57 lauratb>
 require(mvtnorm)
 require(colorspace)
 require(data.table)
@@ -69,7 +69,9 @@ make.mvt.layout <- function(grid.width=5, r.growth.core=0.5, r.growth.edge=0.1,
 
 ###########################################
 ###########################################
-draw.mvt.layout <- function(grid.width=5) {
+draw.mvt.layout <- function(core.ratio=0.5,
+                            core.r=0.5, edge.r=0.1, cv=0.2,
+                            num.centrs=2, grid.width=5) {
 
   dx <- 8/grid.width
   xv <- seq(-4,4,by=dx)
@@ -102,22 +104,35 @@ draw.mvt.layout <- function(grid.width=5) {
   list(grid=a1,rdev=d1)
 }
 
-  #check.dev.size(8.615, 6.9)
- #par(family="HersheySans", mfrow=c(2,2), mai=rep(0.5,4))
-  m1 <- make.single.dist()
-  m2 <- make.single.dist()
- # m3 <- make.single.dist()
-  mcomb <- m1$grid+m2$grid
-  mcomb <- mcomb/max(mcomb)
+  make.plot <- function() {
 
-  core.ratio <- 0.5
+      m1 <- replicate(num.centrs, "[["(make.single.dist(),"grid"), simplify=FALSE)
+      mcomb <- do.call("+", m1[1:min(2,num.centrs)])
+      if(num.centrs==3) mcomb <- mcomb + m1[[3]]
+
+      mcomb <- mcomb/max(mcomb)
+
   mcomb.stand <- mcomb
-  ce.thresh <- quantile(mcomb, core.ratio)
-  mcomb.stand[mcomb>=ce.thresh] <- rnorm(sum(mcomb>=ce.thresh), 0.5,sd=0.1)
-  mcomb.stand[mcomb<ce.thresh] <- rnorm(sum(mcomb<ce.thresh), 0.1,sd=0.02)
-  image(xv,yv,mcomb.stand , col=rev(heat_hcl(12)),asp=1,las=1)
+  ce.thresh <- quantile(mcomb, 1-core.ratio)
+  mcomb.stand[mcomb>=ce.thresh] <- rnorm(sum(mcomb>=ce.thresh),
+                  core.r,sd=core.r*cv)
+  mcomb.stand[mcomb<ce.thresh] <- rnorm(sum(mcomb<ce.thresh),
+                                        edge.r, sd=edge.r*cv)
+  image(xv,yv,mcomb.stand , col=rev(heat_hcl(12)),asp=1,las=1,
+        axes=FALSE)
   abline(h=xv-0.5*dx,lwd=0.5); abline(v=yv-0.5*dx,lwd=0.5)
+  box()
+}
 
+  ww <- 7.25; hh <- 9.5
+  check.dev.size(ww, hh)
+  par(family="HersheySans", mfrow=c(5,4), mai=rep(0.15,4),
+      omi=c(0.25,0.22,0.65,0.15))
+  replicate(20, make.plot())
+
+  mtext(sprintf("Core-edge ratio: %s, core r: %s, edge r: %s, CV: %s",
+                core.ratio, core.r, edge.r, cv),
+        outer=TRUE, adj=0, cex=1.2, line=1)
   other.figs <- FALSE
   if(other.figs) {
   plot(m1$rdev, asp=1, las=1, xlab="Y_1",ylab="Y_2",
@@ -130,5 +145,8 @@ draw.mvt.layout <- function(grid.width=5) {
   mtext(sprintf("Var = %s", round(var(m1$rdev[,2]),3)))
   abline(h=0)
 }
+  dev.copy(CairoPNG, file=sprintf("Sample-rd-map-layout_CE-rtio%s_C%s_E%s.png",
+                         core.ratio, core.r, edge.r), width=ww, height=hh,
+           res=100, units="in"); dev.off()
 
 }
