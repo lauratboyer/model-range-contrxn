@@ -5,7 +5,10 @@
 ## -------------------------------------------------------
 ## Author: Laura Tremblay-Boyer (l.boyer@fisheries.ubc.ca)
 ## Written on: October 18, 2014
-## Time-stamp: <2015-06-14 09:46:57 lauratb>
+## Time-stamp: <2015-09-22 16:08:38 lauratb>
+require(Cairo)
+require(ggplot2)
+require(extrafont)
 require(mvtnorm)
 require(colorspace)
 require(data.table)
@@ -65,6 +68,50 @@ make.mvt.layout <- function(grid.width=5, r.growth.core=0.5, r.growth.edge=0.1,
        edge.cells=which(mcomb<ce.thresh),
        core.r.vals=core.r.vals,
        edge.r.vals=edge.r.vals)
+}
+
+# show single layout in ggplot
+gg.draw.layout <- function(run.obj) { # from tm.spadyn.rd ()
+
+    gw <- run.obj$run.info$grid.width
+    ly.mat <- data.frame(id=1:(gw^2), cell.x=rep(1:gw, each=gw), cell.y=1:gw, r=runif(gw*gw))
+
+    ly.mat$r[run.obj$core.layout$core.cells] <- run.obj$core.layout$core.r.vals
+    ly.mat$r[run.obj$core.layout$edge.cells] <- run.obj$core.layout$edge.r.vals
+    ggplot(dat=ly.mat, aes(x=cell.x, y=cell.y, fill=r)) + geom_tile(colour="black") + coord_equal() +
+        scale_fill_continuous(low="gold", high="indianred3") +
+            theme_bw() +
+                theme(text=element_text(family="Segoe UI Light"), panel.grid=element_blank(), axis.title=element_blank(), axis.text=element_blank())
+}
+
+# show single layout in ggplot
+gg.draw.layout.ts <- function(run.obj, ts2draw=1000) { # from tm.spadyn.rd ()
+
+    dat0 <- run.obj$dfN
+    gdat <- filter(dat0, ts==ts2draw)
+    ggplot(dat=gdat, aes(x=cell.x, y=cell.y, fill=y)) + geom_tile(colour="black") + coord_equal() +
+        scale_fill_continuous(low="gold", high="indianred3") +
+            theme_bw() +
+                theme(text=element_text(family="Segoe UI Light"), panel.grid=element_blank(), axis.title=element_blank(), axis.text=element_blank())
+}
+
+abund.colpal <- colorRampPalette(c("grey", "slategray2","royalblue","gold","hotpink3"))
+gg.draw.layout.multi.ts <- function(run.obj, resp="y",
+                                    ts2draw=c(1,10,25,50,75,100,250,499,500,550,600,650,700,750,900,1000)) { # from tm.spadyn.rd ()
+
+    dat0 <- run.obj$dfN
+    gdat <- filter(dat0, ts%in%ts2draw)
+    gdat$in.range <- gdat$y > gdat$Bthresh.bycell
+
+    gdat$resp <- gdat[,resp]
+    g1 <- ggplot(dat=gdat, aes(x=cell.x, y=cell.y, fill=resp)) + geom_tile(colour="black") + coord_equal() +
+        facet_wrap(~ts) +
+                theme_bw() +
+                theme(text=element_text(family="Segoe UI Light"),
+                      panel.grid=element_blank(),
+                      axis.title=element_blank(), axis.text=element_blank())
+    if(resp=="y") return(g1 + scale_fill_gradientn(colours=abund.colpal(10)))
+    if(resp=="in.range") return(g1 + scale_fill_manual(values=c("grey","royalblue")))
 }
 
 ###########################################
@@ -145,8 +192,8 @@ draw.mvt.layout <- function(core.ratio=0.5,
   mtext(sprintf("Var = %s", round(var(m1$rdev[,2]),3)))
   abline(h=0)
 }
-  dev.copy(CairoPNG, file=sprintf("Sample-rd-map-layout_CE-rtio%s_C%s_E%s.png",
-                         core.ratio, core.r, edge.r), width=ww, height=hh,
+  dev.copy(CairoPNG, file=sprintf("Sample-rd-map-layout_CE-rtio%s_C%s_E%s_%sx%s.png",
+                         core.ratio, core.r, edge.r, grid.width, grid.width), width=ww, height=hh,
            res=100, units="in"); dev.off()
 
 }

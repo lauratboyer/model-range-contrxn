@@ -4,7 +4,7 @@
 ## -------------------------------------------------------
 ## Author: Laura Tremblay-Boyer (l.boyer@fisheries.ubc.ca)
 ## Written on: June 16, 2014
-## Time-stamp: <2014-11-10 09:13:33 Laura>
+## Time-stamp: <2015-09-14 11:46:42 lauratb>
 ########################################################
 # Define general labels and such
 
@@ -48,7 +48,8 @@ plot.emat <- function(emat=envpop$mat, show.nk=FALSE) {
 
     plines <- function(xl) {
 
-        ymax <- ifelse(show.nk, 1.25, max(K))
+        ymax <- ifelse(show.nk, 1.25, ymax)
+
         plot(1:10, type="n", xlim=xl, ylim=c(0,ymax), las=1)
         abline(h=K, col=c(col.mat.transp), lwd=0.5)
 
@@ -62,7 +63,8 @@ plot.emat <- function(emat=envpop$mat, show.nk=FALSE) {
     par(mai=rep(0.3,4), omi=c(0.65,0.5,0.35,0.5), family="HersheySans")
     layout(rbind(3,c(1,2)),height=c(2,1),width=c(2,1))
 
-    ymax <- max(emat, na.rm=TRUE)
+  ymax <- max(emat, na.rm=TRUE)
+
     plines(c(450, 490))
 
     pmai <- par()$mai
@@ -78,7 +80,8 @@ plot.emat <- function(emat=envpop$mat, show.nk=FALSE) {
          col="white", vfont=c("sans serif","bold"))
     mtext("Cell layout and K", adj=0)
 
-    par(mai=pmai)
+  par(mai=pmai)
+
     plines(c(0, ts.max))
     lab <- sprintf("Baseline emigration rate: %s;
  maximum emigration rate %s", emig.base, emig.max)

@@ -4,7 +4,7 @@
 ## -------------------------------------------------------
 ## Author: Laura Tremblay-Boyer (l.boyer@fisheries.ubc.ca)
 ## Written on: June  3, 2014
-## Time-stamp: <2014-11-07 08:56:36 Laura>
+## Time-stamp: <2015-09-15 10:23:52 lauratb>
 require(colorspace); require(RColorBrewer)
 require(Rcpp)
 
@@ -30,8 +30,9 @@ set.seed(999)
 
     ## get environment layout
     hab.setup.funk <- "calc.core.size" # or calc.core.size for a central core
-    core.layout.old <<- do.call(hab.setup.funk, list(ncell))
-    core.layout <<- make.mvt.layout(grid.width, r.growth.core, r.growth.edge)
+core.layout.old <<- do.call(hab.setup.funk, list(ncell))
+    core.layout <<- do.call(hab.setup.funk, list(ncell, r.growth.core, r.growth.edge))
+#    core.layout <<- make.mvt.layout(grid.width, r.growth.core, r.growth.edge)
 
     ### Set up habitat
     habtype <<- "core" # should be 'core','even', 'random'
@@ -198,10 +199,12 @@ ibc.nkratio <<- function(ts.now, nmat, Kcell=K, pref.disp=1, add.r=FALSE,
 
   # take 1 - N/K ratio for each neighbour -- nkmat becomes a vector
   # of the same length as object neighbycell
-  nkmat <- exp((1-nmat/Kcell))[c(neighbycell)]
+  nkmat <- exp(1-nmat/Kcell)
 
   # ... if r counts in preferred dispersal, add r in product instead
-  if(add.r) nkmat <- (r.growth*exp(1-nmat/Kcell))[c(neighbycell)]
+  if(add.r) nkmat <- (r.growth*exp(1-nmat/Kcell))
+  envpop$nkmat[ts.now,] <- nkmat
+  nkmat <- nkmat[c(neighbycell)] # add value for each cell ID in neighbour matrix
 
   # set minimum dispersal rate between cells:
   # ** note that this results in a sharp change once edge cells reach
@@ -212,7 +215,6 @@ ibc.nkratio <<- function(ts.now, nmat, Kcell=K, pref.disp=1, add.r=FALSE,
   #  print(ts.now)}
   # and stabilises population dynamics
   # but probably not the best way to do this
-  #envpop$nkmat[ts.now,] <- nkmat
 
   # switch back to matrix
   dim(nkmat) <- dim(neighbycell)
@@ -243,7 +245,8 @@ ibc.nkratio <<- function(ts.now, nmat, Kcell=K, pref.disp=1, add.r=FALSE,
   # first standardize by dividing by sum index over all cell neighbours
   # (senders in rows, neighbours in columns)
     relprop <- nkmat/apply(nkmat, 1, sum)
-if(ts.now == 2) relprop2 <<- relprop
+  if(ts.now == 2) relprop2 <<- relprop
+
   # assign these values to 0/1 ncell x ncell matrix
   # neet to transpose both neighbour.mat and relprop
   # so that we can fill in neighbours by cell first
@@ -322,7 +325,7 @@ ibc.nkratio.wnatal <- function(nmat, Kcell=K, pref.disp=1, add.r=FALSE,
     ffunk[names(fcall)[-1]] <- fcall[-1]
     envpop$run.info <- ffunk
 
-    cell.dyn(pref.disp=pref.disp, add.r=add.r.pref)
+    cell.dyn(pref.disp=pref.disp, add.r=add.r.pref, emig.bef=TRUE)
     invisible(envpop)
 }
 

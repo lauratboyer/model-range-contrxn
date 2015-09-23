@@ -3,13 +3,43 @@
 ## -------------------------------------------------------
 ## Author: Laura Tremblay-Boyer (l.boyer@fisheries.ubc.ca)
 ## Written on: July 14, 2014
-## Time-stamp: <2014-10-29 10:53:05 Laura>
+## Time-stamp: <2015-09-17 08:33:34 lauratb>
 
 ########################################################
 run.df.scen <- FALSE # set to TRUE to run basic scenarios
 aor.scenario.rerun <- FALSE # set to TRUE to run AOR scenarios
 ########################################################
+args.eelowF <- list(evenfish=list(nodisp=list(r.growth.core=0.1, r.growth.edge=0.1, fish.fact=0.5, emig.base=0),
+                        evdisp=list(r.growth.core=0.1, r.growth.edge=0.1, fish.fact=0.5, emig.base=0.1, pref.disp=0),
+                        prefdisp=list(r.growth.core=0.1, r.growth.edge=0.1, fish.fact=0.5, emig.base=0.1, pref.disp=1, add.r=TRUE)),
+                    corefish=list(nodisp=list(r.growth.core=0.1, r.growth.edge=0.1, fish.fact=0.5, fish.fact.edge=0.1, emig.base=0),
+                        evdisp=list(r.growth.core=0.1, r.growth.edge=0.1, fish.fact=0.5, fish.fact.edge=0.1, emig.base=0.1, pref.disp=0),
+                        prefdisp=list(r.growth.core=0.1, r.growth.edge=0.1, fish.fact=0.5, fish.fact.edge=0.1, emig.base=0.1, pref.disp=1, add.r=TRUE)),
+                    edgefish=list(nodisp=list(r.growth.core=0.1, r.growth.edge=0.1, fish.fact=0.1, fish.fact.edge=0.5, emig.base=0),
+                        evdisp=list(r.growth.core=0.1, r.growth.edge=0.1, fish.fact=0.1, fish.fact.edge=0.5, emig.base=0.1, pref.disp=0),
+                        prefdisp=list(r.growth.core=0.1, r.growth.edge=0.1, fish.fact=0.1, fish.fact.edge=0.5, emig.base=0.1, pref.disp=1, add.r=TRUE)))
+
+args.celowF <- list(evenfish=list(nodisp=list(r.growth.core=0.1, r.growth.edge=0.05, fish.fact=0.5, emig.base=0),
+                        evdisp=list(r.growth.core=0.1, r.growth.edge=0.05, fish.fact=0.5, emig.base=0.1, pref.disp=0),
+                        prefdisp=list(r.growth.core=0.1, r.growth.edge=0.05, fish.fact=0.5, emig.base=0.1, pref.disp=1, add.r=TRUE)),
+                    corefish=list(nodisp=list(r.growth.core=0.1, r.growth.edge=0.05, fish.fact=0.5, fish.fact.edge=0.1, emig.base=0),
+                        evdisp=list(r.growth.core=0.1, r.growth.edge=0.05, fish.fact=0.5, fish.fact.edge=0.1, emig.base=0.1, pref.disp=0),
+                        prefdisp=list(r.growth.core=0.1, r.growth.edge=0.05, fish.fact=0.5, fish.fact.edge=0.1, emig.base=0.1, pref.disp=1, add.r=TRUE)),
+                    edgefish=list(nodisp=list(r.growth.core=0.1, r.growth.edge=0.05, fish.fact=0.1, fish.fact.edge=0.5, emig.base=0),
+                        evdisp=list(r.growth.core=0.1, r.growth.edge=0.05, fish.fact=0.1, fish.fact.edge=0.5, emig.base=0.1, pref.disp=0),
+                        prefdisp=list(r.growth.core=0.1, r.growth.edge=0.05, fish.fact=0.1, fish.fact.edge=0.5, emig.base=0.1, pref.disp=1, add.r=TRUE)))
+
+
+args.ce.low.lowF <- list(evenfish=list(nodisp=list(r.growth.core=0.1, r.growth.edge=0.085, fish.fact=0.5, emig.base=0),
+                        evdisp=list(r.growth.core=0.1, r.growth.edge=0.085, fish.fact=0.5, emig.base=0.1, pref.disp=0),
+                        prefdisp=list(r.growth.core=0.1, r.growth.edge=0.085, fish.fact=0.5, emig.base=0.1, pref.disp=1, add.r=TRUE)))
+args.ce.high.lowF <- list(evenfish=list(nodisp=list(r.growth.core=0.1, r.growth.edge=0.02, fish.fact=0.5, emig.base=0),
+                        evdisp=list(r.growth.core=0.1, r.growth.edge=0.02, fish.fact=0.5, emig.base=0.1, pref.disp=0),
+                        prefdisp=list(r.growth.core=0.1, r.growth.edge=0.02, fish.fact=0.5, emig.base=0.1, pref.disp=1, add.r=TRUE)))
+
+
 scenario.run <- function(rgcore = 0.1, rgedge=rgcore, Fval=0.5) {
+
 
 ## Constant environment
 ## fishing everywhere

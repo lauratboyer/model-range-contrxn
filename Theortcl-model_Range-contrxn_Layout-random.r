@@ -3,7 +3,8 @@ tm.spadyn.rd <- function(emig.base=0.1, emig.max=emig.base,
                            K.core=10000, K.edge=K.core,
                            fish.fact=0, fish.fact.edge=fish.fact,
                            rg.cv=0.1, ts.max=1000,
-                           pref.disp=0, add.r.pref=TRUE,
+                         pref.disp=0, add.r.pref=TRUE,
+                         use.mvt.range=TRUE,
                            grid.width = 5) {
 
   ## Model parameters
@@ -17,9 +18,13 @@ tm.spadyn.rd <- function(emig.base=0.1, emig.max=emig.base,
   r.mrt <<- r.growth # mortality rate
 
   ## get environment layout and set-up habitat by cells
+  if(use.mvt.range) {
   core.layout <<- make.mvt.layout(grid.width,
                                   r.growth.core, r.growth.edge,
                                   edge.ratio=0.64, rg.cv=rg.cv)
+}else{
+    core.layout <<- calc.core.size(ncell, r.growth.core, r.growth.edge) # deterministic
+}
   K <<- rep(K.core, ncell)
   r.growth[core.layout$core.cells] <<- core.layout$core.r.vals
   r.growth[core.layout$edge.cells] <<- core.layout$edge.r.vals
@@ -39,21 +44,22 @@ tm.spadyn.rd <- function(emig.base=0.1, emig.max=emig.base,
   # Set up environment and matrices to hold population values
   # in recursive function call
 
-    envpop <<- new.env() # create environment to store
-    envpop$Ntvect <- rep(NA, ts.max)
-    envpop$Ntvect[1] <- Ni
-    envpop$mat <- array(NA, dim=c(grid.width, grid.width, ts.max))
-    envpop$mat[,,1] <- Ni
-    envpop$emig.mat <- array(NA, dim=dim(envpop$mat))
-    envpop$emig.mat[,,1] <- 0
-    envpop$catch.mat <- array(NA, dim=dim(envpop$mat))
-    envpop$F.array <- array(NA, dim=dim(envpop$mat))
+ #   envpop <<- new.env() # create environment to store
+
+  #envpop$Ntvect <- rep(NA, ts.max)
+   # envpop$Ntvect[1] <- Ni
+    #envpop$mat <- array(NA, dim=c(grid.width, grid.width, ts.max))
+    #envpop$mat[,,1] <- Ni
+    #envpop$emig.mat <- array(NA, dim=dim(envpop$mat))
+    #envpop$emig.mat[,,1] <- 0
+    #envpop$catch.mat <- array(NA, dim=dim(envpop$mat))
+    #envpop$F.array <- array(NA, dim=dim(envpop$mat))
 
     # record number of immigrants/emigrants to/by cell at every time step
-    envpop$immig.store <- matrix(NA, nrow=ts.max, ncol=ncell)
-    envpop$emig.store <- matrix(NA, nrow=ts.max, ncol=ncell)
-    envpop$nkmat <- matrix(NA, nrow=ts.max, ncol=ncell)
-    envpop$immig.rate <- array(NA, dim=c(ncell, ncell, ts.max))
+    #envpop$immig.store <- matrix(NA, nrow=ts.max, ncol=ncell)
+    #envpop$emig.store <- matrix(NA, nrow=ts.max, ncol=ncell)
+    #envpop$nkmat <- matrix(NA, nrow=ts.max, ncol=ncell)
+    #envpop$immig.rate <- array(NA, dim=c(ncell, ncell, ts.max))
 
   ###################################################
   # Define neighbours by cell
@@ -158,7 +164,6 @@ tm.spadyn.rd <- function(emig.base=0.1, emig.max=emig.base,
   fcall <- sys.call()
   ffunk[names(fcall)[-1]] <- fcall[-1]
   ffunk$ts.max <- ts.max
-
   pmat <- alldyn(Ni, ncell, numts=ts.max,
                  r.growth, r.mrt, K,
                  emig.max, F.array, add_r=add.r.pref, pref_val=pref.disp,
@@ -167,8 +172,69 @@ tm.spadyn.rd <- function(emig.base=0.1, emig.max=emig.base,
   pmat$core.layout <- core.layout
   pmat$cell.col <- list(op=col.mat,transp=col.mat.transp)
 
+  map.enviro <- gg.draw.layout(pmat)
+  pmat$map.layout <- map.enviro
+
   # in original envpop: F.array, Ntvect, catch.mat, emig.mat,
   # emig.store, immig.rate, immig.store, mat, nkmat, run.info
 
+  # format dataframe for easy graphics with ggplot of N at each time-step by cell vs. cell.type
+  dfN <- data.frame(ts=1:ts.max, y=c(t(pmat$Nmat)), id=rep(1:ncell, each=ts.max))
+  dfN$cell.type <- "edge"
+  dfN$cell.type[dfN$id %in% core.layout$core.cells] <- "core"
+  dfN <- inner_join(dfN, map.enviro$dat, by="id")
+
+  # format dataframe of individual exchanges 'neighmat' for easy graphics
+  exch0 <- format.exch.df(pmat$neighmat, core.layout)
+  pmat$ss.regions.core2edge <- exch0$core2edge.ratio-1
+  pmat$ss.cells.core <- srcsink.rd(pmat)$core.ss
+
+  # add bcur/b0 metric
+  cell.type.vect <- rep("edge", ncell)
+  cell.type.vect[core.layout$core.cells] <- "core"
+  pmat$pop.Bcur <- sum(pmat$Nmat[,ts.max])/sum(pmat$Nmat[,fishing.start-1])
+  pmat$cell.Bcur <- data.frame(id=1:ncell, cell.type=cell.type.vect, pop.Bcur=pmat$pop.Bcur,
+                               y=pmat$Nmat[,ts.max], y0=pmat$Nmat[,fishing.start-1],
+                               Bcur=pmat$Nmat[,ts.max]/pmat$Nmat[,fishing.start-1])
+  pmat$cell.Bcur$Bcur.diff <- with(pmat$cell.Bcur, (pop.Bcur-Bcur)/pop.Bcur)
+  thresh.in.range <- 0.05 # threshold of B/B0 to consider cell occupied
+  pmat$cell.Bcur$Bthresh.bycell <- with(pmat$cell.Bcur, thresh.in.range * y0) # cell-wise threshold
+  pmat$cell.Bcur$Bthresh.all <- with(pmat$cell.Bcur, sum(y0)/ncell * thresh.in.range) # average range density threshold
+  dfN <- inner_join(dfN, pmat$cell.Bcur[,c("id","Bthresh.bycell","Bthresh.all")], by="id")
+  dfN$in.range <- as.numeric(dfN$Bthresh.bycell < dfN$y)
+  pmat$dfN <- dfN
+  pmat$ts.map <- gg.draw.layout.multi.ts(pmat) # now add map of abundance over time
+  pmat$abund.ts <- tapply(dfN$y, dfN$ts, sum)
+  pmat$area.ts <- tapply(dfN$in.range, dfN$ts, sum)
   invisible(pmat)
+}
+
+#############################################################
+# format exchange dataframes
+format.exch.df <- function(neighmat, cell.layout) {
+
+    df.exch <- data.frame(sending.id=1:ncell, receiving.id=rep(1:ncell, each=ncell),
+                        Nx=c(neighmat),
+                          sending.cell.type="edge", receiving.cell.type="edge")
+    df.exch$receiving.cell.type[df.exch$receiving.id %in% cell.layout$core.cells] <- "core"
+    df.exch$sending.cell.type[df.exch$sending.id %in% cell.layout$core.cells] <- "core"
+
+    exch.metr <- df.exch %>% group_by(sending.cell.type, receiving.cell.type) %>%
+        summarize(N=sum(Nx)) %>% mutate(label=paste(sending.cell.type, receiving.cell.type, sep="2")) %>% data.frame
+    rownames(exch.metr) <- exch.metr$label
+    list(df=df.exch, core2edge.ratio=exch.metr["core2edge","N"]/exch.metr["edge2core","N"])
+
+}
+
+#############################################################
+spadyn.sims <- function(..., nsim=100) {
+
+    require(parallel)
+    all.sims <- mclapply(1:nsim, function(i) do.call("tm.spadyn.rd",...))
+    all.df0 <- mclapply(all.sims, "[[", "dfN")
+    all.df <- do.call("rbind",all.df0)
+    cell.out <- with(all.sims[[1]]$run.info, c(ts.max, grid.width))
+    num.rows <- cell.out[1]*cell.out[2]^2
+    all.df$sim.id <- rep(1:nsim, each = num.rows)
+    list(all.sims=all.sims, df=all.df)
 }

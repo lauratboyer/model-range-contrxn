@@ -69,14 +69,16 @@ cell.dyn <- function(pref.disp=0, add.r=FALSE,
         # for each cell, N_t-1 * prop.emig
         #emig.by.cell <- c(envpop$mat[,,ts-1]*prop.emig)
         emig.by.cell <- c(matnow*prop.emig)
-
+if(ts==3) emigbc <<- emig.by.cell
         # assign to each neighbour by multiplying on neighbour mat
         # and spreading evenly over neighbours by dividing by # neighbours
         # senders in rows, receivers in columns
         prop.immig <- ibc.nkratio(ts, matnow, pref.disp=pref.disp, add.r=add.r)
         envpop$immig.rate[,,ts] <- prop.immig
-        immig.by.cell <- apply(emig.by.cell*prop.immig, 2, sum)
-
+        if(ts==3) epi <<- emig.by.cell*prop.immig
+        # thought there was a bug here but it is ALL GOOD
+         immig.by.cell <- apply(emig.by.cell*prop.immig, 2, sum) # multiply matrix with senders in rows * emig by cell vector
+# immig.by.cell <- apply(emig.by.cell*prop.immig, 1, sum) # multiply matrix with senders in rows * emig by cell vector
         envpop$immig.store[ts,] <- immig.by.cell
         envpop$emig.store[ts,] <- emig.by.cell
 
@@ -86,8 +88,6 @@ cell.dyn <- function(pref.disp=0, add.r=FALSE,
         matnow <- fishmat
 
         if(emig.before) {
-
-
 
         matupd <- updcellcpp_eb4r(matnow, r.growth, r.mrt, K,
                              emig.by.cell, immig.by.cell,

@@ -3,13 +3,13 @@
 ## -------------------------------------------------------
 ## Author: Laura Tremblay-Boyer (l.boyer@fisheries.ubc.ca)
 ## Written on: July 25, 2014
-## Time-stamp: <2014-07-25 11:39:04 Laura>
+## Time-stamp: <2015-09-10 15:05:16 lauratb>
 
 
 ## This one is for a middle core set-up
 ## Calculate width of square in the middle
 ## aiming between 30-40% of cells within core
-calc.core.size <- function(n=ncell) {
+calc.core.size <- function(n=ncell, r.growth.core=NA, r.growth.edge=NA) {
 
     gw <- sqrt(n)
     even.width <- (gw %% 2)==0
@@ -36,7 +36,9 @@ calc.core.size <- function(n=ncell) {
     core.ind <- core.ind[order(-apply(abs(core.pos - center.val), 1, mean))]
     edge.ind <- edge.ind[order(-apply(abs(edge.pos - center.val), 1, mean))]
 
-    return(list(core.mat=core.mat,core.cells=core.ind,edge.cells=edge.ind))
+    return(list(core.cells=core.ind,edge.cells=edge.ind,
+                core.r.vals=rep(r.growth.core, length(core.ind)),
+                edge.r.vals=rep(r.growth.edge, length(edge.ind)), core.mat=core.mat))
 }
 
 ## Band core set-up (like latitudes)
