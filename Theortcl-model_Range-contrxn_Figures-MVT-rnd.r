@@ -1,5 +1,11 @@
+theme.lolo <- theme_bw() + theme(text=element_text(family="Segoe UI Light", size=12),
+                                 axis.title.x=element_text(vjust=-0.615),
+                                 axis.title.y=element_text(vjust=0.95),
+                            panel.grid=element_blank(),
+                            panel.margin=unit(0.4,"cm"), strip.background = element_rect(fill="slategrey",colour="slategrey"),
+                            strip.text=element_text(colour="white", size=12.5, vjust=0.4))
+theme_set(theme.lolo)
 
-theme_set(theme_bw())
 ts.avrg.N <- function(run.obj) {
 
     nts <- run.obj$run.info$ts.max
@@ -28,9 +34,12 @@ ts.avrg.simu <- function(multi.obj) {
         summarize(mean.n=mean(y), qt25=quantile(y, 0.25), qt75=quantile(y,0.75))
     #        geom_line(data=df1, aes(x=ts, y=mean.n, group=simu.cell, color=cell.type))+
 
-    ggplot(data=df2, aes(x=ts, color=cell.type)) + geom_hline(yint=10000) +
-            geom_ribbon(aes(ymin=qt25, ymax=qt75, fill=cell.type), colour=NA, alpha=0.25) +
-        geom_line(aes(y=mean.n), alpha=0.95, size=2)# +
+    ggplot(data=df2, aes(x=ts, color=cell.type)) + geom_hline(aes(yintercept=c(0,10000))) +
+        geom_ribbon(aes(ymin=qt25, ymax=qt75, fill=cell.type), colour=NA, alpha=0.25) +
+            scale_fill_discrete(guide="none") +             scale_color_discrete(guide="none") +
+
+                geom_line(aes(y=mean.n), alpha=0.95, size=2) + ylab("Abundance (in # individuals)") +
+                                                         xlab("Time")
 
 #                coord_cartesian(ylim=c(0, 1.2*10000))
 
@@ -38,13 +47,20 @@ ts.avrg.simu <- function(multi.obj) {
 
 fig3.explo <- function() {
 
-    fa <- tm.spadyn.rd(emig.base=0, r.growth.edge=0.02, fish.fact=0.5, pref.disp=0, use.mvt=FALSE)
-    fb <- tm.spadyn.rd(emig.base=0.1, r.growth.edge=0.02, fish.fact=0.5, pref.disp=0, use.mvt=FALSE)
-    fc <- tm.spadyn.rd(emig.base=0.1, r.growth.edge=0.02, fish.fact=0.5, pref.disp=1, add.r.pref=TRUE,
-                       use.mvt=FALSE)
-    grid.arrange(ts.avrg.N(fa), ts.avrg.N(fb), ts.avrg.N(fc), nrow=1)
+    ca <- spadyn.sims(list(emig.base=0, r.growth.edge=0.085, fish.fact=0.5, pref.disp=0),10)
+    cb <- spadyn.sims(list(emig.base=0.1, r.growth.edge=0.085, fish.fact=0.5, pref.disp=0),10)
+    cc <- spadyn.sims(list(emig.base=0.1, r.growth.edge=0.085, fish.fact=0.5, pref.disp=1, add.r.pref=TRUE),10)
 
-    list(fa, fb, fc)
+    fa <- spadyn.sims(list(emig.base=0, r.growth.edge=0.02, fish.fact=0.5, pref.disp=0), 10)
+    fb <- spadyn.sims(list(emig.base=0.1, r.growth.edge=0.02, fish.fact=0.5, pref.disp=0), 10)
+    fc <- spadyn.sims(list(emig.base=0.1, r.growth.edge=0.02, fish.fact=0.5, pref.disp=1, add.r.pref=TRUE), 10)
+
+    grid.arrange(ts.avrg.simu(ca), ts.avrg.simu(cb), ts.avrg.simu(cc),
+                 ts.avrg.simu(fa), ts.avrg.simu(fb), ts.avrg.simu(fc), nrow=2)
+    ggsave("tm_ts-3-scen_FMx3_two-envir-scenarios_RND-DISTRIB.pdf")
+
+#ts.avrg.simu(ca)
+#    list(fa, fb, fc)
 }
 
 fig4.explo <- function(which.type="ee",disp.type="evdisp") {
