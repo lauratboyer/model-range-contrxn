@@ -5,7 +5,7 @@
 ## -------------------------------------------------------
 ## Author: Laura Tremblay-Boyer (l.boyer@fisheries.ubc.ca)
 ## Written on: October 18, 2014
-## Time-stamp: <2015-09-22 16:08:38 lauratb>
+## Time-stamp: <2015-09-29 08:53:58 lauratb>
 require(Cairo)
 require(ggplot2)
 require(extrafont)
@@ -139,7 +139,7 @@ draw.mvt.layout <- function(core.ratio=0.5,
   m2 <- cov.prm*m1 + rnorm(1000, sd=sqrt(var2))
   var2 <- var(m2)
   cov.val <- cov(m1, m2)
-  cov.val <- cov.val*sample(c(-1,1),1)
+  cov.val <- cov.val*sign.cor
 
   sigma.mat <- matrix(c(var1,cov.val,cov.val,var2), ncol=2)
 

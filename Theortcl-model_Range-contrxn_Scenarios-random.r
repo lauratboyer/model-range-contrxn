@@ -3,7 +3,7 @@
 ## -------------------------------------------------------
 ## Author: Laura Tremblay-Boyer (lauratb@spc.int)
 ## Written on: September 16, 2015
-## Time-stamp: <2015-09-23 15:18:38 lauratb>
+## Time-stamp: <2015-10-01 15:00:13 lauratb>
 
 ##
 theme.lolo <- theme_bw() + theme(text=element_text(family="Segoe UI Light", size=12),
@@ -205,12 +205,12 @@ fig.biom.indic.random <- function() {
     ggsave("Theo-mod_range-contrxn_reg-Bcur-vs-loc-Bcur_RND-DISTRIB.png")
 }
 
-launch.aor.random <- function(pref.disp=0, rg.core=0.5, nsim=100, rg.cv=0.1) {
+launch.aor.random <- function(pref.disp=0, rg.core=0.5, ff.all=0.5, nsim=100, rg.cv=0.1) {
 
     rge.vect <- c(0.5, 0.3, 0.2, 0.1)/0.5*rg.core
 
     # fishing mortality used in scenarios
-    ff.all <- 0.5
+
     ff.edge <- ff.all
 
     go.simu <- function(rge) {
@@ -232,16 +232,16 @@ launch.aor.random <- function(pref.disp=0, rg.core=0.5, nsim=100, rg.cv=0.1) {
     rge.sims <- lapply(rge.vect, go.simu)
     names(rge.sims) <- c("noss","lss","mss","hss")
 
-    fname <- sprintf("aor-simu_prefdisp %s_rgcore %s_rgcv %s.RData", pref.disp, rg.core, rg.cv)
+    fname <- sprintf("aor-simu_prefdisp %s_rgcore %s_rgcv %s_F %s.RData", pref.disp, rg.core, rg.cv, ff.all)
     print(fname)
     save(rge.sims, file=fname)
     invisible(rge.sims)
 }
 
-fig.aor.random <- function(pref.disp=0) {
+fig.aor.random <- function(pref.disp=0, fval=0.8) {
 
     format.df <- function(pd.val) {
-    load(sprintf("aor-simu_prefdisp %s_rgcore 0.5_rgcv 0.3.RData", pd.val)) # rge.sims
+    load(sprintf("aor-simu_prefdisp %s_rgcore 0.5_rgcv 0.3_F %s.RData", pd.val, fval)) # rge.sims
     dat.all <- do.call(rbind, rge.sims)
     dat.all$abund %<>% "/"(1000)
     re.vect <- unique(dat.all$r.edge)
@@ -279,12 +279,12 @@ fig.aor.random <- function(pref.disp=0) {
                     coord_cartesian(xlim=c(0,1)) + xlab("Bcur/B0") + ylab("Area (# squares)") +
     theme(legend.key=element_blank())
     check.dev.size(9,7)
-    ggsave("tm-range-contrxn_aor-scenario_aor-only_RND-DISTRIB.pdf", g1)
+    ggsave(sprintf("tm-range-contrxn_aor-scenario_aor-only_F %s_RND-DISTRIB.pdf", fval), g1)
 }
 
-calc.aor.metric.random <- function() {
+calc.aor.metric.random <- function(fval=0.8) {
 
-    aa <- load("aor-simu_prefdisp 0_rgcore 0.5_rgcv 0.3.RData")
+    aa <- load(sprintf("aor-simu_prefdisp 0_rgcore 0.5_rgcv 0.3_F %s.RData", fval))
     o1 <- na.omit(do.call(rbind, rge.sims))
 #    abund.ts <- apply(popmat, 3, sum)
 #    area.ts <- apply((floor(popmat))>(pres.thresh*K), 3, sum)
@@ -339,10 +339,10 @@ if(rerun.biomindic){
 rerun.aor.rnd <- FALSE
 if(rerun.aor.rnd){
 
-    launch.aor.random(0, nsim=10, rg.cv=0.3)
-    launch.aor.random(0.5, nsim=10, rg.cv=0.3)
-    launch.aor.random(1, nsim=10, rg.cv=0.3)
-    launch.aor.random(2, nsim=10, rg.cv=0.3)
+    launch.aor.random(0, nsim=10, rg.cv=0.3, ff.all=0.8)
+    launch.aor.random(0.5, nsim=10, rg.cv=0.3, ff.all=0.8)
+    launch.aor.random(1, nsim=10, rg.cv=0.3, ff.all=0.8)
+    launch.aor.random(2, nsim=10, rg.cv=0.3, ff.all=0.8)
 }
 
 

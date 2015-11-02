@@ -5,6 +5,7 @@ tm.spadyn.rd <- function(emig.base=0.1, emig.max=emig.base,
                            rg.cv=0.1, ts.max=1000,
                          pref.disp=0, add.r.pref=TRUE,
                          use.mvt.range=TRUE,
+                         run.label,
                            grid.width = 5) {
 
   ## Model parameters
@@ -180,6 +181,7 @@ tm.spadyn.rd <- function(emig.base=0.1, emig.max=emig.base,
 
   # format dataframe for easy graphics with ggplot of N at each time-step by cell vs. cell.type
   dfN <- data.frame(ts=1:ts.max, y=c(t(pmat$Nmat)), id=rep(1:ncell, each=ts.max))
+  if(!missing(run.label)) dfN$run.label <- run.label
   dfN$cell.type <- "edge"
   dfN$cell.type[dfN$id %in% core.layout$core.cells] <- "core"
   dfN <- inner_join(dfN, map.enviro$dat, by="id")

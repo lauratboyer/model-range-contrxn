@@ -1,9 +1,10 @@
 theme.lolo <- theme_bw() + theme(text=element_text(family="Segoe UI Light", size=12),
                                  axis.title.x=element_text(vjust=-0.615),
-                                 axis.title.y=element_text(vjust=0.95),
+                                 axis.title.y=element_text(vjust=1.5),
                             panel.grid=element_blank(),
                             panel.margin=unit(0.4,"cm"), strip.background = element_rect(fill="slategrey",colour="slategrey"),
-                            strip.text=element_text(colour="white", size=12.5, vjust=0.4))
+                                 strip.text=element_text(colour="white", size=12.5, vjust=0.4),
+                                 legend.key=element_blank())
 theme_set(theme.lolo)
 
 ts.avrg.N <- function(run.obj) {
@@ -45,22 +46,80 @@ ts.avrg.simu <- function(multi.obj) {
 
 }
 
-fig3.explo <- function() {
+fig3.explo <- function(fish.F=0.5) {
 
-    ca <- spadyn.sims(list(emig.base=0, r.growth.edge=0.085, fish.fact=0.5, pref.disp=0),10)
-    cb <- spadyn.sims(list(emig.base=0.1, r.growth.edge=0.085, fish.fact=0.5, pref.disp=0),10)
-    cc <- spadyn.sims(list(emig.base=0.1, r.growth.edge=0.085, fish.fact=0.5, pref.disp=1, add.r.pref=TRUE),10)
 
-    fa <- spadyn.sims(list(emig.base=0, r.growth.edge=0.02, fish.fact=0.5, pref.disp=0), 10)
-    fb <- spadyn.sims(list(emig.base=0.1, r.growth.edge=0.02, fish.fact=0.5, pref.disp=0), 10)
-    fc <- spadyn.sims(list(emig.base=0.1, r.growth.edge=0.02, fish.fact=0.5, pref.disp=1, add.r.pref=TRUE), 10)
+    frmfunk <- function(x) x %>% group_by(run.label, cell.type, ts) %>%
+        summarize(y.median=median(y), y.25=quantile(y, 0.25), y.75=quantile(y, 0.75))
+    ca <- spadyn.sims(list(emig.base=0, r.growth.edge=0.085,
+                           fish.fact=fish.F, pref.disp=0, run.label="No movement, low HS"),10)$df %>% frmfunk
+    cb <- spadyn.sims(list(emig.base=0.1, r.growth.edge=0.085,
+                           fish.fact=fish.F, pref.disp=0, run.label="Uniform movement, low HS"),10)$df %>% frmfunk
+    cc <- spadyn.sims(list(emig.base=0.1, r.growth.edge=0.085,
+                           fish.fact=fish.F, pref.disp=1, add.r.pref=TRUE, run.label="Preferential movement, low HS"),10)$df %>% frmfunk
 
-    grid.arrange(ts.avrg.simu(ca), ts.avrg.simu(cb), ts.avrg.simu(cc),
-                 ts.avrg.simu(fa), ts.avrg.simu(fb), ts.avrg.simu(fc), nrow=2)
-    ggsave("tm_ts-3-scen_FMx3_two-envir-scenarios_RND-DISTRIB.pdf")
+    fa <- spadyn.sims(list(emig.base=0, r.growth.edge=0.02,
+                           fish.fact=fish.F, pref.disp=0,
+                           run.label="No movement, high HS"), 10)$df %>% frmfunk
+    fb <- spadyn.sims(list(emig.base=0.1, r.growth.edge=0.02,
+                           fish.fact=fish.F, pref.disp=0,
+                           run.label="Uniform movement, high HS"), 10)$df %>% frmfunk
+    fc <- spadyn.sims(list(emig.base=0.1, r.growth.edge=0.02,
+                           fish.fact=fish.F, pref.disp=1, add.r.pref=TRUE,
+                           run.label="Preferential movement, high HS"), 10)$df %>% frmfunk
 
-#ts.avrg.simu(ca)
-#    list(fa, fb, fc)
+    fig3df <- rbind(ca, cb, cc, fa, fb, fc)
+    attr(fig3df, "K") <- K[1]
+    attr(fig3df, "r.growth.core") <- 0.1
+    attr(fig3df, "r.growth.edge") <- c(0.085, 0.02)
+    save(fig3df, file=paste0("tm_simu-data_ts-3-scen-two-envir_F", fish.F, ".RData"))
+#    grid.arrange(ts.avrg.simu(ca), ts.avrg.simu(cb), ts.avrg.simu(cc),
+ #                ts.avrg.simu(fa), ts.avrg.simu(fb), ts.avrg.simu(fc), nrow=2)
+  #  ggsave("tm_ts-3-scen_FMx3_two-envir-scenarios_RND-DISTRIB.pdf")
+
+    #ts.avrg.simu(ca)
+    #list(fa, fb, fc)
+    invisible(fig3df)
+}
+
+fig3.ggp <- function(fish.fact=0.5) {
+
+    aa <- load(paste0("tm_simu-data_ts-3-scen-two-envir_F", fish.fact, ".RData"))
+    fig3df$mov <- factor(sapply(strsplit(fig3df$run.label,", "), "[[", 1),
+                         levels=c("No movement","Uniform movement","Preferential movement"), ordered=TRUE)
+    fig3df$hs <- factor(sapply(strsplit(fig3df$run.label,", "), "[[", 2),
+                        levels=c("low HS","high HS"), ordered=TRUE)
+    K <- attr(fig3df,"K")
+    r.mort <- attr(fig3df,"r.growth.core")
+    r.edge <- attr(fig3df,"r.growth.edge")
+    edge.line <- K * r.edge/r.mort; names(edge.line) <- c("low HS", "high HS")
+    fig3df$edge.line <- edge.line[fig3df$hs]
+    fig3df$note.x <- 1000
+    fig3df$note.y <- 10000
+    fig3df$note.lab <- "Edge K"
+    fig3df$note.lab[fig3df$ts != 1 | fig3df$cell.type=="core"] <- ""
+    fish.poly <- data.frame(x=c(0,500,500,0), y=c(0,0,12000,12000))
+
+    colv <- c("tomato","dodgerblue")
+
+    check.dev.size(12.1, 7)
+    ggplot(data=fig3df, aes(x=ts, y=y.median, color=cell.type, fill=cell.type)) +
+        # geom_polygon(data=fish.poly, aes(x=x, y=y), color=NA, fill="cornsilk4",alpha=0.2) +
+        annotate("rect", xmin=0, xmax=500, ymin=0, ymax=12000, color=NA, fill="cornsilk4",alpha=0.2) +
+
+        geom_hline(aes(yintercept=edge.line), colour="grey") + geom_hline(aes(yintercept=K), colour="grey") +
+        geom_ribbon(aes(ymin=y.25, ymax=y.75), alpha=0.5, color=NA) + geom_line() +
+            facet_grid(hs~mov) +
+                geom_text(aes(x=note.x, y=edge.line, label=note.lab), family="Segoe UI Light",
+                          size=4, hjust=1.2, vjust=-0.2, color="grey") +
+         annotate("text", x=1000, y=10000, label="Core K", family="Segoe UI Light",
+                          size=4, hjust=1.2, vjust=-0.2, color="grey") +
+                scale_color_manual(name="Cell type", values=c("tomato","dodgerblue"),
+                                   guide=guide_legend(override.aes=list(size=1.5))) +
+
+                coord_cartesian(xlim=c(0,1000), ylim=c(0,12000)) + scale_fill_manual(values=colv, guide="none") +
+                    ylab("Median abundance (+/- 25-75th quantile)") + xlab("Time")
+ggsave("tm_ts-3-scen_FMx3_two-envir-scenarios_RND-DISTRIB.pdf")
 }
 
 fig4.explo <- function(which.type="ee",disp.type="evdisp") {
